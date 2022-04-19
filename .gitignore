@@ -1,3 +1,9 @@
+# IDE
+*.vscode
+
+# Platformio
+*.pio
+
 # Prerequisites
 *.d
 
