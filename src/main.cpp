@@ -2,10 +2,8 @@
 #include "diode_calibration/diode_calibration.h"
 #include "mbed.h"
 
-using namespace mbed;
-using namespace rtos;
 
-Thread calibration_thread;
+rtos::Thread calibration_thread;
 
 void setup() {
   Serial.begin(9600);
