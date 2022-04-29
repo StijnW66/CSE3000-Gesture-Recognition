@@ -1,73 +1,11 @@
 #include<Arduino.h>
 #include<inttypes.h>
 
+#include "SimplePhotoDiodeReader.h"
+#include "SimpleGestureEdgeDetector.h"
+#include "SimpleZScore.h"
+
 #define DEBUG
-
-class PDReader {
-
-    public:
-        PDReader() {}
-
-        void read(auto d, uint16_t * dest) {
-            *dest = analogRead(d);
-        }
-};
-
-class GestureEdgeDetector {
-
-    private: 
-        int detectionWindowLength;
-        int threshold;
-
-    public: 
-        GestureEdgeDetector(int detWL, int t) : detectionWindowLength(detWL), threshold(t) {}
-
-        bool DetectStart(uint16_t * signal) {
-            int count = detectionWindowLength;
-
-            while(count-- > 0) {
-                if(*(signal--) >= threshold) return false;
-            }
-
-            return true;
-        }
-
-        bool DetectEnd(uint16_t * signal) {
-            int count = detectionWindowLength;
-
-            while(count-- > 0) {
-                if(*(signal--) < threshold) return false;
-            }
-
-            return true;
-        }
-
-};
-
-class Z_Score {
-
-    public:
-        Z_Score() {}
-
-        void ComputeZScore(uint16_t * signal, uint16_t * dest, int length) {
-            uint16_t mean = 0, stdev = 0;
-            int index = 0;
-
-            // Mean
-            while(index++ < length) mean += signal[index];
-            mean /= length;
-
-            // Compute stddev
-            index = 0;
-            while(index++ < length) stdev += pow(signal[index] - mean, 2);
-            stdev = pow(stdev, 0.5);
-
-            // Compute the Z-score and put it in the destination
-            index = 0;
-            while(index++ < length) dest[index] = (signal[index] - mean) / stdev;
-        }
-
-};
 
 
 #define PD1 A0
@@ -81,9 +19,9 @@ class Z_Score {
 uint16_t detectionWindow[DETECTION_WINDOW_LENGTH];
 uint16_t photodiodeData[2][READING_WINDOW_LENGTH];
 
-Z_Score zScoreCalculator;
-PDReader reader;
-GestureEdgeDetector edgeDetector(DETECTION_WINDOW_LENGTH, DETECTION_THRESHOLD);
+SimpleZScore zScoreCalculator;
+SimplePhotoDiodeReader reader;
+SimpleGestureEdgeDetector edgeDetector(DETECTION_WINDOW_LENGTH, DETECTION_THRESHOLD);
 
 
 void printSignal(uint16_t * signal, int length) {
