@@ -80,14 +80,14 @@ void loop_main() {
         delay(READ_PERIOD);
     }
 
-    long s = micros();
-    hampel.filter1(photodiodeData1);
-    long e = micros();
+    // long s = micros();
+    // hampel.filter1(photodiodeData1);
+    // long e = micros();
 
-    Serial.print("Hampel: ");
-    Serial.println(e - s);
+    // Serial.print("Hampel: ");
+    // Serial.println(e - s);
 
-    // count2 = 0;
+    // int count2 = 0;
     // while(count2++ < DETECTION_WINDOW_LENGTH) {
     //         Serial.print(photodiodeData[0][count2]);
     //         Serial.print(" ");
