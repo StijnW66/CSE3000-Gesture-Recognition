@@ -4,6 +4,7 @@
 #include "SimplePhotoDiodeReader.h"
 #include "SimpleGestureEdgeDetector.h"
 #include "SimpleZScore.h"
+#include "SimpleHampel.h"
 
 #define DEBUG
 
@@ -22,6 +23,7 @@ uint16_t photodiodeData[2][READING_WINDOW_LENGTH];
 SimpleZScore zScoreCalculator;
 SimplePhotoDiodeReader reader;
 SimpleGestureEdgeDetector edgeDetector(DETECTION_WINDOW_LENGTH, DETECTION_THRESHOLD);
+SimpleHampel hampel(5);
 
 
 void printSignal(uint16_t * signal, int length) {
@@ -43,7 +45,28 @@ void setup() {
     Serial.begin(9600);
 }
 
-void loop() {
+
+int test_hampel() {
+
+    uint16_t signal[11];
+
+    for (size_t i = 0; i < 11; i++)
+    {
+        signal[i] = i % 4;
+    }
+    
+    long s = micros();
+
+    hampel.filter1(signal);
+    
+    long e = micros();
+
+    Serial.print("Time for Hampel on 11 samples: ");
+    Serial.print(e - s);
+    Serial.println(" micros");
+}
+
+void loop_main() {
 
     int count = DETECTION_WINDOW_LENGTH;
     int gestureSignalLength;
@@ -56,6 +79,13 @@ void loop() {
 
         delay(READ_PERIOD);
     }
+
+    long s = micros();
+    hampel.filter1(photodiodeData1);
+    long e = micros();
+
+    Serial.print("Hampel: ");
+    Serial.println(e - s);
 
     // count2 = 0;
     // while(count2++ < DETECTION_WINDOW_LENGTH) {
@@ -109,4 +139,11 @@ void loop() {
     // Serial.println(analogRead(PD2));
     delay(READ_PERIOD);
 
+}
+
+void loop() {
+    loop_main();
+
+    // test_hampel();
+    // delay(1000);
 }
