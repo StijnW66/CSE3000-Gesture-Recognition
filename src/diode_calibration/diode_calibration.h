@@ -14,7 +14,7 @@ bool comparator(Resistor const& a, Resistor const& b) {
 }
 
 // Set available resistor values.
-const Resistor resistors[] = {{{D9}, 1000000}, {{D10}, 660000}, {{D11}, 330000}, {{D12}, 100000}};
+const Resistor resistors[] = {{{D9}, 660000}, {{D10}, 330000}, {{D11}, 150000}, {{D12}, 100000}};
 
 // Set diode to finetune
 const uint8_t diode = A0;
@@ -24,27 +24,31 @@ const uint8_t diode = A0;
 void set_resistor(const std::vector<uint8_t> indices) {
   // First unset all resistors
   for(uint8_t i = 0; i < sizeof(resistors)/sizeof(Resistor); i++) {
-    digitalWrite(resistors[i].pins.at(0), LOW);
+    digitalWrite(resistors[i].pins.at(0), HIGH);
   }
 
   // Then set all resistors
-  Serial.print("Setting resistors: ");
   for (unsigned int j = 0; j < indices.size(); j++) {
-    Serial.print(indices.at(j));
-    Serial.print(", ");
-    digitalWrite(indices.at(j), HIGH);
+    digitalWrite(indices.at(j), LOW);
   }
-  Serial.println();
 }
 
 // Calculates the total resistive value of a set of resistors.
 // 1/Rtot = 1/R1 + 1/R2 ...
-float calculate_total_resistance(std::vector<float> values) {
+float calculate_total_resistance_paralel(std::vector<float> values) {
   float sum = 0;
   for(unsigned int i = 0; i < values.size(); i++) {
     sum += 1/values.at(i);
   }
   return 1/sum;
+}
+
+float calculate_total_resistance_series(std::vector<float> values) {
+  float sum = 0;
+  for(unsigned int i = 0; i < values.size(); i++) {
+    sum += values.at(i);
+  }
+  return sum;
 }
 
 std::vector<Resistor> createPowerSet(const Resistor* set, int size) {
@@ -62,7 +66,7 @@ std::vector<Resistor> createPowerSet(const Resistor* set, int size) {
         pin_numbers.push_back(set[j].pins.at(0)); // Since these are single resistors the pin numbers are at postion 0.
       }       
     }
-    powerSet[counter] = Resistor{pin_numbers, calculate_total_resistance(values)};
+    powerSet[counter] = Resistor{pin_numbers, calculate_total_resistance_series(values)};
   }
   return powerSet;
 }
@@ -75,10 +79,16 @@ void calibrate_diode(uint8_t resistorIndex, std::vector<Resistor> powerSet, int 
   // Check if index exists.
   if(resistorIndex >= powerSetSize) {
     digitalWrite(22, LOW);
-    delay(10000);
     return;
   }
 
+  //Serial.print("Value: ");
+  //Serial.println(powerSet[resistorIndex].value);
+  //for(int i = 0; i < powerSet[resistorIndex].pins.size(); i++) {
+  //  Serial.print(powerSet[resistorIndex].pins.at(i));
+  //  Serial.print(", ");
+  //}
+  //Serial.println();
   // Set new resistor.
   set_resistor(powerSet[resistorIndex].pins);
 
@@ -86,7 +96,7 @@ void calibrate_diode(uint8_t resistorIndex, std::vector<Resistor> powerSet, int 
   float sum = 0.0f;
   for(int i = 0; i < window; i++) {
     sum += analogRead(diode);
-    delay(300);
+    delay(100);
   }
 
   float reading = sum / window;
