@@ -29,4 +29,8 @@ class SimpleGestureEdgeDetector {
             return true;
         }
 
+        void setThreshold(int t) {
+            threshold = t;
+        }
+
 };
