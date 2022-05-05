@@ -17,6 +17,7 @@
 #define READING_WINDOW_LENGTH 250
 #define THRESHOLD_ADJUSTMENT_LENGTH 100
 #define READ_PERIOD 20
+#define GESTURE_MIN_TIME_MS 100
 
 uint16_t DETECTION_THRESHOLD = 750;
 
@@ -128,10 +129,15 @@ void loop_main() {
             delay(READ_PERIOD);
 
             if(edgeDetector.DetectEnd(photodiodeData2 - 1) && edgeDetector.DetectEnd(photodiodeData1 - 1)) {
-                endDetected = true;
 
                 // Determine the gesture length
                 gestureSignalLength = photodiodeData2 - photodiodeData[1];
+
+                if (gestureSignalLength < GESTURE_MIN_TIME_MS / READ_PERIOD + 1) {
+                    Serial.println("Gesture took too little time! Rejecting and starting over ...");
+                    break;
+                }
+                else endDetected = true;
 
                 Serial.print("End of Gesture Detected. Samples in the gesture ");
                 Serial.println(photodiodeData2 - photodiodeData[1]);
@@ -146,6 +152,11 @@ void loop_main() {
                 // Normalize with the Z-score
                 zScoreCalculator.ComputeZScore(photodiodeData[0], photodiodeData[0], gestureSignalLength);
                 zScoreCalculator.ComputeZScore(photodiodeData[1], photodiodeData[1], gestureSignalLength);
+
+                Serial.println("Gesture data after Z-score normalization: ");
+                printSignal(photodiodeData[0], gestureSignalLength);
+                printSignal(photodiodeData[1], gestureSignalLength);
+                Serial.println("-------------------------------------");
 
                 break;
             }
