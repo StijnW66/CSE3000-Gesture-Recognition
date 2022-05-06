@@ -161,8 +161,8 @@ void loop_main() {
                 }
 
                 // Normalize with the Z-score
-                zScoreCalculator.ComputeZScore(photodiodeData[0], normPhotodiodeData[0], gestureSignalLength);
-                zScoreCalculator.ComputeZScore(photodiodeData[1], normPhotodiodeData[1], gestureSignalLength);
+                zScoreCalculator.ComputeZScore(photodiodeData[0], normPhotodiodeData[0], gestureSignalLength, true);
+                zScoreCalculator.ComputeZScore(photodiodeData[1], normPhotodiodeData[1], gestureSignalLength, true);
 
                 Serial.println("Gesture data after Z-score normalization: ");
                 printSignalF(normPhotodiodeData[0], gestureSignalLength);
