@@ -36,3 +36,13 @@
 *.exe
 *.out
 *.app
+
+# Datasets
+data
+
+# Python blobs
+__pycache__
+venv
+
+# Tensorflow output
+*.tflite
