@@ -13,21 +13,23 @@
 #define PD1 A0
 #define PD2 A1
 
-#define DETECTION_WINDOW_LENGTH 5
+#define DETECTION_WINDOW_LENGTH 10
+#define DETECTION_END_WINDOW_LENGTH 30
 #define READING_WINDOW_LENGTH 250
 #define THRESHOLD_ADJUSTMENT_LENGTH 100
-#define READ_PERIOD 20
+#define READ_PERIOD 5
 #define GESTURE_MIN_TIME_MS 100
 
 uint16_t DETECTION_THRESHOLD = 750;
 
 uint16_t thresholdAdjustmentBuffer[THRESHOLD_ADJUSTMENT_LENGTH];
 uint16_t photodiodeData[2][READING_WINDOW_LENGTH];
+float    normPhotodiodeData[2][READING_WINDOW_LENGTH];
 uint16_t * taBuffer = thresholdAdjustmentBuffer;
 
 SimpleZScore zScoreCalculator;
 SimplePhotoDiodeReader reader;
-SimpleGestureEdgeDetector edgeDetector(DETECTION_WINDOW_LENGTH, DETECTION_THRESHOLD);
+SimpleGestureEdgeDetector edgeDetector(DETECTION_WINDOW_LENGTH, DETECTION_END_WINDOW_LENGTH, DETECTION_THRESHOLD);
 SimpleHampel hampel(5);
 
 
@@ -35,7 +37,16 @@ void printSignal(uint16_t * signal, int length) {
     int count = 0;
 
     while(count++ < length) {
-        int c = 0;
+        Serial.print(signal[count]);
+        Serial.print(" ");
+    }
+    Serial.println();
+}
+
+void printSignalF(float * signal, int length) {
+    int count = 0;
+
+    while(count++ < length) {
         Serial.print(signal[count]);
         Serial.print(" ");
     }
@@ -150,12 +161,12 @@ void loop_main() {
                 }
 
                 // Normalize with the Z-score
-                zScoreCalculator.ComputeZScore(photodiodeData[0], photodiodeData[0], gestureSignalLength);
-                zScoreCalculator.ComputeZScore(photodiodeData[1], photodiodeData[1], gestureSignalLength);
+                zScoreCalculator.ComputeZScore(photodiodeData[0], normPhotodiodeData[0], gestureSignalLength);
+                zScoreCalculator.ComputeZScore(photodiodeData[1], normPhotodiodeData[1], gestureSignalLength);
 
                 Serial.println("Gesture data after Z-score normalization: ");
-                printSignal(photodiodeData[0], gestureSignalLength);
-                printSignal(photodiodeData[1], gestureSignalLength);
+                printSignalF(normPhotodiodeData[0], gestureSignalLength);
+                printSignalF(normPhotodiodeData[1], gestureSignalLength);
                 Serial.println("-------------------------------------");
 
                 break;

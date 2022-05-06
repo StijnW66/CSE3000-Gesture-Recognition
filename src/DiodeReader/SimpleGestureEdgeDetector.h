@@ -4,10 +4,11 @@ class SimpleGestureEdgeDetector {
 
     private: 
         int detectionWindowLength;
+        int detectionEndWindowLength;
         int threshold;
 
     public: 
-        SimpleGestureEdgeDetector(int detWL, int t) : detectionWindowLength(detWL), threshold(t) {}
+        SimpleGestureEdgeDetector(int detWL, int detEWL, int t) : detectionWindowLength(detWL), detectionEndWindowLength(detEWL), threshold(t) {}
 
         bool DetectStart(uint16_t * signal) {
             int count = detectionWindowLength;
@@ -20,7 +21,7 @@ class SimpleGestureEdgeDetector {
         }
 
         bool DetectEnd(uint16_t * signal) {
-            int count = detectionWindowLength;
+            int count = detectionEndWindowLength;
 
             while(count-- > 0) {
                 if(*(signal--) < threshold) return false;
