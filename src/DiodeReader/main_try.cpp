@@ -13,11 +13,11 @@
 #define PD1 A0
 #define PD2 A1
 
-#define DETECTION_WINDOW_LENGTH 10
-#define DETECTION_END_WINDOW_LENGTH 30
+#define DETECTION_WINDOW_LENGTH 5
+#define DETECTION_END_WINDOW_LENGTH 10
 #define READING_WINDOW_LENGTH 250
 #define THRESHOLD_ADJUSTMENT_LENGTH 100
-#define READ_PERIOD 5
+#define READ_PERIOD 30
 #define GESTURE_MIN_TIME_MS 100
 
 uint16_t DETECTION_THRESHOLD = 750;
@@ -101,7 +101,6 @@ void loop_main() {
 
     // If there was no gesture recently, update the threshold
     if (taBuffer - thresholdAdjustmentBuffer >= THRESHOLD_ADJUSTMENT_LENGTH) {
-        Serial.println("Threshold Adjustment");
         DETECTION_THRESHOLD = (QuickMedian<uint16_t>::GetMedian(thresholdAdjustmentBuffer, THRESHOLD_ADJUSTMENT_LENGTH) * 4) / 5 ;
         edgeDetector.setThreshold(DETECTION_THRESHOLD);
         taBuffer = thresholdAdjustmentBuffer;
@@ -169,6 +168,17 @@ void loop_main() {
                 printSignalF(normPhotodiodeData[1], gestureSignalLength);
                 Serial.println("-------------------------------------");
 
+                Serial.println("Start");
+
+                for (size_t i = 0; i < gestureSignalLength; i++)
+                {
+                    Serial.print(normPhotodiodeData[0][i]);
+                    Serial.print(" ");
+                    Serial.println(normPhotodiodeData[1][i]);
+                }
+
+                Serial.println("Done");
+
                 break;
             }
         }
@@ -181,8 +191,6 @@ void loop_main() {
             Serial.println(DETECTION_THRESHOLD);
         }
 
-    } else {
-        Serial.println("Gesture Not Detected");
     }
 
     delay(READ_PERIOD);
