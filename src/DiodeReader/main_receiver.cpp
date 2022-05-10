@@ -43,27 +43,6 @@ SimpleHampel hampel(5);
 
 NRF52_MBED_Timer ITimer1(NRF_TIMER_2);
 
-void printSignal(uint16_t * signal, int length) {
-    int count = 0;
-
-    while(count++ < length) {
-        Serial.print(signal[count]);
-        Serial.print(" ");
-    }
-    Serial.println();
-}
-
-void printSignalF(float * signal, int length) {
-    int count = 0;
-
-    while(count++ < length) {
-        Serial.print(signal[count]);
-        Serial.print(" ");
-    }
-    Serial.println();
-}
-
-
 void setup() {
 
     pinMode(PD1, INPUT);
@@ -73,27 +52,6 @@ void setup() {
 
     ITimer1.attachInterruptInterval(READ_PERIOD * 1000, loop_main);
     ITimer1.restartTimer();
-}
-
-
-int test_hampel() {
-
-    uint16_t signal[11];
-
-    for (size_t i = 0; i < 11; i++)
-    {
-        signal[i] = i % 4;
-    }
-    
-    long s = micros();
-
-    hampel.filter1(signal);
-    
-    long e = micros();
-
-    Serial.print("Time for Hampel on 11 samples: ");
-    Serial.print(e - s);
-    Serial.println(" micros");
 }
 
 void loop_main() {
@@ -130,25 +88,12 @@ void loop_main() {
         DETECTION_THRESHOLD = (QuickMedian<uint16_t>::GetMedian(thresholdAdjustmentBuffer, THRESHOLD_ADJUSTMENT_LENGTH) * 4) / 5 ;
         edgeDetector.setThreshold(DETECTION_THRESHOLD);
         taBuffer = thresholdAdjustmentBuffer;
-
-#ifdef DEBUG        
-        Serial.print("New threshold is "); 
-        Serial.println(DETECTION_THRESHOLD);
-#endif
-
     }
-
+    
     // Try to detect a start on one of the photodiodes
     if (detectionWindowFull && (edgeDetector.DetectStart(photodiodeData2 - 1) || edgeDetector.DetectStart(photodiodeData1 - 1))) {
 
         ITimer1.stopTimer();
-
-#ifdef DEBUG        
-        Serial.println("Gesture Detected");
-        printSignal(photodiodeData[0], photodiodeData1 - photodiodeData[0]);
-        Serial.println("------------");
-        printSignal(photodiodeData[1], photodiodeData2 - photodiodeData[1]);
-#endif
 
         bool endDetected = false;
 
@@ -179,11 +124,6 @@ void loop_main() {
                 }
                 else endDetected = true;
 
-#ifdef DEBUG
-                Serial.print("End of Gesture Detected. Samples in the gesture ");
-                Serial.println(photodiodeData2 - photodiodeData[1]);
-#endif
-
                 // Flip the signal
                 int index = 0;
                 while(index++ < gestureSignalLength) {
@@ -194,24 +134,6 @@ void loop_main() {
                 // Normalize with the Z-score
                 zScoreCalculator.ComputeZScore(photodiodeData[0], normPhotodiodeData[0], gestureSignalLength, true);
                 zScoreCalculator.ComputeZScore(photodiodeData[1], normPhotodiodeData[1], gestureSignalLength, true);
-
-#ifdef DEBUG
-                Serial.println("Gesture data after Z-score normalization: ");
-                printSignalF(normPhotodiodeData[0], gestureSignalLength);
-                printSignalF(normPhotodiodeData[1], gestureSignalLength);
-                Serial.println("-------------------------------------");
-#endif
-
-#ifdef SEND_PLOT
-                Serial.println("Start");
-                for (size_t i = 0; i < gestureSignalLength; i++)
-                {
-                    Serial.print(normPhotodiodeData[0][i]);
-                    Serial.print(" ");
-                    Serial.println(normPhotodiodeData[1][i]);
-                }
-                Serial.println("Done");
-#endif
 
                 break;
             }
@@ -227,51 +149,12 @@ void loop_main() {
         if(!endDetected) {
             DETECTION_THRESHOLD = (QuickMedian<uint16_t>::GetMedian(photodiodeData[0], READING_WINDOW_LENGTH) * 4) / 5;
             edgeDetector.setThreshold(DETECTION_THRESHOLD);
-
-#ifdef DEBUG
-            Serial.println("Gesture took more samples then space allowed. Try recalculating the threshold ...");
-            Serial.print("New threshold is "); 
-            Serial.println(DETECTION_THRESHOLD);
-#endif
         }
 
         ITimer1.restartTimer();
     }
 }
 
-void utilPrintPhotoDiodes() {
-    Serial.print("A0: ");
-    Serial.println(analogRead(PD1));
-    Serial.print("A1: ");
-    Serial.println(analogRead(PD2));
-    delay(READ_PERIOD);
-}
-
-void utilTestMedianFinder() {
-    uint16_t data[READING_WINDOW_LENGTH];
-
-    for (size_t i = 0; i < READING_WINDOW_LENGTH; i++)
-    {
-        data[i] = analogRead(PD1);
-        delay(1);
-    }
-
-    long s = micros();
-    int t = QuickMedian<uint16_t>::GetMedian(data, READING_WINDOW_LENGTH);
-    long e = micros();
-
-    Serial.print("Median took for ");
-    Serial.print(READING_WINDOW_LENGTH);
-    Serial.print(" : ");
-    Serial.println(e - s);
-
-    delay(1000);
-}
-
 void loop() {
     // loop_main();
-
-    // utilTestMedianFinder();
-
-    // utilPrintPhotoDiodes();
 }
