@@ -1,11 +1,12 @@
 #include<Arduino.h>
 #include<inttypes.h>
+#include <QuickMedianLib.h>
+#include <TimerInterrupt_Generic.h>
 
 #include "SimplePhotoDiodeReader.h"
 #include "SimpleGestureEdgeDetector.h"
 #include "SimpleZScore.h"
 #include "SimpleHampel.h"
-#include <QuickMedianLib.h>
 
 // #define DEBUG
 // #define SEND_PLOT
@@ -40,6 +41,7 @@ SimplePhotoDiodeReader reader;
 SimpleGestureEdgeDetector edgeDetector(DETECTION_WINDOW_LENGTH, DETECTION_END_WINDOW_LENGTH, DETECTION_THRESHOLD);
 SimpleHampel hampel(5);
 
+NRF52_MBED_Timer ITimer1(NRF_TIMER_2);
 
 void printSignal(uint16_t * signal, int length) {
     int count = 0;
@@ -68,6 +70,9 @@ void setup() {
     pinMode(PD2, INPUT);
 
     Serial.begin(9600);
+
+    ITimer1.attachInterruptInterval(READ_PERIOD * 1000, loop_main);
+    ITimer1.restartTimer();
 }
 
 
@@ -95,21 +100,18 @@ void loop_main() {
 
     if(detectionWindowFull == false) {
          // If the detection window is not filled, fill it
-         while(count > 0) {
-            reader.read(PD1, photodiodeData1++);
-            reader.read(PD2, photodiodeData2++);
-            reader.read(PD1, taBuffer++);
-            delay(READ_PERIOD);
+         reader.read(PD1, photodiodeData1++);
+         reader.read(PD2, photodiodeData2++);
+         reader.read(PD1, taBuffer++);
+
+         if (--count == 0) {
+             photodiodeData1 -= 1;
+             photodiodeData2 -= 1;
+             count = DETECTION_WINDOW_LENGTH;
+             detectionWindowFull = true;
          }
 
-         photodiodeData1 -= 1;
-         photodiodeData2 -= 1;
-
-         count = DETECTION_WINDOW_LENGTH;
-         detectionWindowFull = true;
-
     } else {
-
         // If the detection window is already filled, shift it left with 1
         // and put the new sample in the last place
         for (size_t i = 0; i < DETECTION_WINDOW_LENGTH - 1; i++)
@@ -137,7 +139,9 @@ void loop_main() {
     }
 
     // Try to detect a start on one of the photodiodes
-    if (edgeDetector.DetectStart(photodiodeData2 - 1) || edgeDetector.DetectStart(photodiodeData1 - 1)) {
+    if (detectionWindowFull && (edgeDetector.DetectStart(photodiodeData2 - 1) || edgeDetector.DetectStart(photodiodeData1 - 1))) {
+
+        ITimer1.stopTimer();
 
 #ifdef DEBUG        
         Serial.println("Gesture Detected");
@@ -230,9 +234,9 @@ void loop_main() {
             Serial.println(DETECTION_THRESHOLD);
 #endif
         }
-    }
 
-    delay(READ_PERIOD);
+        ITimer1.restartTimer();
+    }
 }
 
 void utilPrintPhotoDiodes() {
@@ -265,7 +269,7 @@ void utilTestMedianFinder() {
 }
 
 void loop() {
-    loop_main();
+    // loop_main();
 
     // utilTestMedianFinder();
 
