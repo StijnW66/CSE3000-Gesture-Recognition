@@ -1,9 +1,9 @@
 import tensorflow as tf
 import numpy as np
 import models
-from data_processing import load_and_combine_data, preprocess_input, split_to_tf_datasets
+import data_processing
 
-EPOCHS = 25
+EPOCHS = 50
 
 def compile_model(model: tf.keras.Model):
     model.summary()
@@ -36,11 +36,26 @@ def train_and_evaluate(model: tf.keras.Model,
     print("Test accuracy:", score[1])
 
 
-if __name__ == "__main__":
-    features, labels = load_and_combine_data()
-    features, labels = preprocess_input(features, labels)
-    train_dataset, test_dataset = split_to_tf_datasets(features, labels)
-    running_model = models.slam_cnn(features[0].shape)
+def train_uwave():
+    print("========== UWAVE DATA ==========")
+    features, labels = data_processing.load_and_combine_uwave()
+    features, labels = data_processing.preprocess_input(features, labels)
+    train_dataset, test_dataset = data_processing.split_to_tf_datasets(features, labels)
+    running_model = models.slam_cnn(features[0].shape, data_processing.NUM_CLASSES_UWAVE)
 
     compile_model(running_model)
     train_and_evaluate(running_model, train_dataset, test_dataset)
+
+
+def train_initial_raw_dataset():
+    print("========== INITIAL RAW DATASET ==========")
+    features, labels = data_processing.load_and_combine_initial_raw_data()
+    train_dataset, test_dataset = data_processing.split_to_tf_datasets(features, labels)
+    running_model = models.slam_cnn(features[0].shape, data_processing.NUM_CLASSES_INITIAL_RAW_DATA)
+    
+    compile_model(running_model)
+    train_and_evaluate(running_model, train_dataset, test_dataset)
+
+
+if __name__ == "__main__":
+    train_initial_raw_dataset()

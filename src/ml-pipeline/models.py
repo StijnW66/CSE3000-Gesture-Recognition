@@ -1,5 +1,5 @@
 from typing import List, Tuple
-from data_processing import NUM_CLASSES
+from data_processing import NUM_CLASSES_UWAVE
 import tensorflow as tf
 
 def _vgg_block(num_convs: int, num_channels: int) -> tf.keras.Model:
@@ -20,7 +20,7 @@ def _vgg_block(num_convs: int, num_channels: int) -> tf.keras.Model:
     blk.add(tf.keras.layers.MaxPool2D(pool_size=2, strides=2))
     return blk
 
-def vgg(input_shape: Tuple, conv_arch: List[Tuple[int, int]]) -> tf.keras.Model:
+def vgg(input_shape: Tuple, conv_arch: List[Tuple[int, int]], num_classes: int) -> tf.keras.Model:
     """
     Construct a VGG-style CNN as outlined in (https://d2l.ai/chapter_convolutional-modern/vgg.html#vgg-network)
 
@@ -28,6 +28,7 @@ def vgg(input_shape: Tuple, conv_arch: List[Tuple[int, int]]) -> tf.keras.Model:
         input_shape: Shape of the CNN input
         conv_arch: List of pairs corresponding to the number of convolutions and output channels
         of each VGG block in the CNN
+        num_classes: The total number of classes in the dataset to be trained on
     
     Returns:
         A VGG-style CNN as a Keras model
@@ -45,17 +46,18 @@ def vgg(input_shape: Tuple, conv_arch: List[Tuple[int, int]]) -> tf.keras.Model:
         tf.keras.layers.Dropout(0.5),
         tf.keras.layers.Dense(4096, activation='relu'),
         tf.keras.layers.Dropout(0.5),
-        tf.keras.layers.Dense(NUM_CLASSES)]))
+        tf.keras.layers.Dense(num_classes)]))
     return net
 
 
-def keras_mnist_example(input_shape: Tuple) -> tf.keras.Model:
+def keras_mnist_example(input_shape: Tuple, num_classes: int) -> tf.keras.Model:
     """
     Based on CNN example from Keras documentation, originally for use with MNIST
     (https://keras.io/examples/vision/mnist_convnet/).
 
     Args:
         input_shape: Shape of the CNN input
+        num_classes: The total number of classes in the dataset to be trained on
 
     Returns:
         A trimmed version of the MNIST example CNN
@@ -66,10 +68,10 @@ def keras_mnist_example(input_shape: Tuple) -> tf.keras.Model:
         tf.keras.layers.MaxPooling2D(pool_size=(3, 1)),
         tf.keras.layers.Flatten(),
         tf.keras.layers.Dropout(0.5),
-        tf.keras.layers.Dense(NUM_CLASSES, activation="softmax", name="predictions"),
+        tf.keras.layers.Dense(num_classes, activation="softmax", name="predictions"),
     ])
 
-def slam_cnn(input_shape: Tuple) -> tf.keras.Model:
+def slam_cnn(input_shape: Tuple, num_classes: int) -> tf.keras.Model:
     return tf.keras.models.Sequential([
         tf.keras.Input(shape=input_shape, name="sensor image"),
         tf.keras.layers.Conv2D(32, kernel_size=(2, 2), strides=(1, 1), activation="relu"),
@@ -78,10 +80,10 @@ def slam_cnn(input_shape: Tuple) -> tf.keras.Model:
         tf.keras.layers.Conv2D(16, kernel_size=(5, 1), activation="relu"),
         tf.keras.layers.Flatten(),
         tf.keras.layers.Dropout(0.5),
-        tf.keras.layers.Dense(NUM_CLASSES, activation="softmax", name="predictions"),
+        tf.keras.layers.Dense(num_classes, activation="softmax", name="predictions"),
     ])
 
-def slam_cnn_padding(input_shape: Tuple) -> tf.keras.Model:
+def slam_cnn_padding(input_shape: Tuple, num_classes: int) -> tf.keras.Model:
     return tf.keras.models.Sequential([
         tf.keras.Input(shape=input_shape, name="sensor image"),
         tf.keras.layers.ZeroPadding2D(padding=(0, 2)),
@@ -91,5 +93,5 @@ def slam_cnn_padding(input_shape: Tuple) -> tf.keras.Model:
         tf.keras.layers.MaxPooling2D(pool_size=(3, 1)),
         tf.keras.layers.Flatten(),
         tf.keras.layers.Dropout(0.5),
-        tf.keras.layers.Dense(NUM_CLASSES, activation="softmax", name="predictions"),
+        tf.keras.layers.Dense(num_classes, activation="softmax", name="predictions"),
     ])

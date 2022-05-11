@@ -1,5 +1,5 @@
 from runner import compile_model, train_and_evaluate
-from data_processing import BATCH_SIZE, NUM_CLASSES, load_and_combine_data, preprocess_input, split_to_tf_datasets
+import data_processing
 import models
 import numpy as np
 import pandas as pd
@@ -8,12 +8,28 @@ import tensorflow as tf
 representative_dataset = None # TODO: Devise less hacky solution
 
 def _convert_no_optimisations(model: tf.keras.Model):
+    """
+    Convert a Keras model to a TensorflowLite model without applying any additional
+    optimisations and save it to a file.
+
+    Args:
+        model: The model to be converted
+    """
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
     tflite_model = converter.convert()
     open("model_no_optimisations.tflite", "wb").write(tflite_model)
 
 
 def _convert_with_quantization(model: tf.keras.Model, dataset: tf.data.Dataset):
+    """
+    Convert a Keras model to a TensorflowLite model, applying default optimisations
+    and quantization, and save it to a file.
+
+    Args:
+        model: The model to be converted
+        dataset: The dataset used to test and/or train the model. Used to infer
+        representative input values for quantization
+    """
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
     converter.optimizations = [tf.lite.Optimize.DEFAULT]
 
@@ -36,8 +52,12 @@ def evaluate_tflite_model(file_path: str,
     output_details = tflite_interpreter.get_output_details()
 
     # Resize I/O tensors to be able to process BATCH_SIZE batches of data
-    tflite_interpreter.resize_tensor_input(input_details[0]['index'], (BATCH_SIZE, 315, 3, 1))
-    tflite_interpreter.resize_tensor_input(output_details[0]['index'], (BATCH_SIZE, NUM_CLASSES))
+    tflite_interpreter.resize_tensor_input(
+        input_details[0]['index'],
+        (data_processing.BATCH_SIZE, 315, 3, 1))
+    tflite_interpreter.resize_tensor_input(
+        output_details[0]['index'],
+        (data_processing.BATCH_SIZE, data_processing.NUM_CLASSES_UWAVE))
     tflite_interpreter.allocate_tensors()
 
     # Feed first test batch to input tensor
@@ -59,9 +79,9 @@ def evaluate_tflite_model(file_path: str,
 
 
 if __name__ == "__main__":
-    features, labels = load_and_combine_data()
-    features, labels = preprocess_input(features, labels)
-    train_dataset, test_dataset = split_to_tf_datasets(features, labels)
+    features, labels = data_processing.load_and_combine_uwave()
+    features, labels = data_processing.preprocess_input(features, labels)
+    train_dataset, test_dataset = data_processing.split_to_tf_datasets(features, labels)
     running_model = models.slam_cnn(features[0].shape)
 
     compile_model(running_model)
