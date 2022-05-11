@@ -3,7 +3,7 @@ import numpy as np
 import models
 import data_processing
 
-EPOCHS = 50
+EPOCHS = 500
 
 def compile_model(model: tf.keras.Model):
     model.summary()
@@ -41,7 +41,7 @@ def train_uwave():
     features, labels = data_processing.load_and_combine_uwave()
     features, labels = data_processing.preprocess_input(features, labels)
     train_dataset, test_dataset = data_processing.split_to_tf_datasets(features, labels)
-    running_model = models.slam_cnn(features[0].shape, data_processing.NUM_CLASSES_UWAVE)
+    running_model = models.slam_cnn_padding(features[0].shape, data_processing.NUM_CLASSES_UWAVE)
 
     compile_model(running_model)
     train_and_evaluate(running_model, train_dataset, test_dataset)
@@ -51,7 +51,7 @@ def train_initial_raw_dataset():
     print("========== INITIAL RAW DATASET ==========")
     features, labels = data_processing.load_and_combine_initial_raw_data()
     train_dataset, test_dataset = data_processing.split_to_tf_datasets(features, labels)
-    running_model = models.slam_cnn(features[0].shape, data_processing.NUM_CLASSES_INITIAL_RAW_DATA)
+    running_model = models.slam_cnn_padding(features[0].shape, data_processing.NUM_CLASSES_INITIAL_RAW_DATA)
     
     compile_model(running_model)
     train_and_evaluate(running_model, train_dataset, test_dataset)

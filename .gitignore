@@ -46,3 +46,8 @@ venv
 
 # Tensorflow output
 *.tflite
+
+# Image files (VisualKeras output)
+*.png
+*.jpeg
+*.jpg

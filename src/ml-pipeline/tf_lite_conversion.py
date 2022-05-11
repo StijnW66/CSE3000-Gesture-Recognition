@@ -82,7 +82,7 @@ if __name__ == "__main__":
     features, labels = data_processing.load_and_combine_uwave()
     features, labels = data_processing.preprocess_input(features, labels)
     train_dataset, test_dataset = data_processing.split_to_tf_datasets(features, labels)
-    running_model = models.slam_cnn(features[0].shape)
+    running_model = models.slam_cnn_padding(features[0].shape, data_processing.NUM_CLASSES_UWAVE)
 
     compile_model(running_model)
     train_and_evaluate(running_model, train_dataset, test_dataset)
