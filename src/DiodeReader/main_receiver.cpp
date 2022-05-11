@@ -1,7 +1,7 @@
 #include<Arduino.h>
 #include<inttypes.h>
 #include <QuickMedianLib.h>
-#include <TimerInterrupt_Generic.h>
+#include <SimpleTimer.h>
 
 #include "SimplePhotoDiodeReader.h"
 #include "SimpleGestureEdgeDetector.h"
@@ -19,11 +19,11 @@
 #define DETECTION_END_WINDOW_LENGTH     10
 #define READING_WINDOW_LENGTH           250
 #define THRESHOLD_ADJUSTMENT_LENGTH     100
-#define READ_PERIOD                     30
+#define READ_PERIOD                     20
 #define GESTURE_MIN_TIME_MS             100
 
 uint16_t DETECTION_THRESHOLD = 750;
-int count = DETECTION_WINDOW_LENGTH;
+int count = 0;
 bool detectionWindowFull = false;
 
 uint16_t thresholdAdjustmentBuffer[THRESHOLD_ADJUSTMENT_LENGTH];
@@ -41,7 +41,10 @@ SimplePhotoDiodeReader reader;
 SimpleGestureEdgeDetector edgeDetector(DETECTION_WINDOW_LENGTH, DETECTION_END_WINDOW_LENGTH, DETECTION_THRESHOLD);
 SimpleHampel hampel(5);
 
-NRF52_MBED_Timer ITimer1(NRF_TIMER_2);
+SimpleTimer timer;
+int timID;
+
+void loop_main();
 
 void setup() {
 
@@ -50,8 +53,7 @@ void setup() {
 
     Serial.begin(9600);
 
-    ITimer1.attachInterruptInterval(READ_PERIOD * 1000, loop_main);
-    ITimer1.restartTimer();
+    timID = timer.setInterval(READ_PERIOD, loop_main);
 }
 
 void loop_main() {
@@ -62,10 +64,11 @@ void loop_main() {
          reader.read(PD2, photodiodeData2++);
          reader.read(PD1, taBuffer++);
 
-         if (--count == 0) {
+         count++;
+
+         if (count == DETECTION_WINDOW_LENGTH) {
              photodiodeData1 -= 1;
              photodiodeData2 -= 1;
-             count = DETECTION_WINDOW_LENGTH;
              detectionWindowFull = true;
          }
 
@@ -91,9 +94,7 @@ void loop_main() {
     }
     
     // Try to detect a start on one of the photodiodes
-    if (detectionWindowFull && (edgeDetector.DetectStart(photodiodeData2 - 1) || edgeDetector.DetectStart(photodiodeData1 - 1))) {
-
-        ITimer1.stopTimer();
+    if (detectionWindowFull && (edgeDetector.DetectStart(photodiodeData2) || edgeDetector.DetectStart(photodiodeData1))) {
 
         bool endDetected = false;
 
@@ -135,6 +136,17 @@ void loop_main() {
                 zScoreCalculator.ComputeZScore(photodiodeData[0], normPhotodiodeData[0], gestureSignalLength, true);
                 zScoreCalculator.ComputeZScore(photodiodeData[1], normPhotodiodeData[1], gestureSignalLength, true);
 
+                Serial.println("Start");
+
+                // Send the signals
+                for (int i = 0; i < gestureSignalLength; i++)
+                {
+                    Serial.print(normPhotodiodeData[0][i]);
+                    Serial.print(" ");
+                    Serial.println(0);
+                }
+                Serial.println("Done");
+            
                 break;
             }
         }
@@ -144,6 +156,7 @@ void loop_main() {
         photodiodeData1 = photodiodeData[0];
         photodiodeData2 = photodiodeData[1];
         taBuffer = thresholdAdjustmentBuffer;
+        count = 0;
 
         // Gesture took too long -> Light Intensity Change -> Threshold Recalculation
         if(!endDetected) {
@@ -151,10 +164,10 @@ void loop_main() {
             edgeDetector.setThreshold(DETECTION_THRESHOLD);
         }
 
-        ITimer1.restartTimer();
+        timer.restartTimer(timID);
     }
 }
 
 void loop() {
-    // loop_main();
+    timer.run();
 }
