@@ -7,6 +7,8 @@
 #include "SimpleGestureEdgeDetector.h"
 #include "SimpleZScore.h"
 #include "SimpleHampel.h"
+#include "SimpleSmoothFilter.h"
+#include "SimpleSignalStretcher.h"
 
 // #define DEBUG
 // #define SEND_PLOT
@@ -19,8 +21,10 @@
 #define DETECTION_END_WINDOW_LENGTH     10
 #define READING_WINDOW_LENGTH           250
 #define THRESHOLD_ADJUSTMENT_LENGTH     100
-#define READ_PERIOD                     20
+#define READ_PERIOD                     10
 #define GESTURE_MIN_TIME_MS             100
+
+#define ML_DATA_LENGTH 100
 
 uint16_t DETECTION_THRESHOLD = 750;
 int count = 0;
@@ -35,11 +39,16 @@ uint16_t * photodiodeData2 = photodiodeData[1];
 int gestureSignalLength;
 
 float normPhotodiodeData[2][READING_WINDOW_LENGTH];
+float normOutlPhotodiodeData[2][READING_WINDOW_LENGTH];
+
+float output[2][ML_DATA_LENGTH];
 
 SimpleZScore zScoreCalculator;
 SimplePhotoDiodeReader reader;
 SimpleGestureEdgeDetector edgeDetector(DETECTION_WINDOW_LENGTH, DETECTION_END_WINDOW_LENGTH, DETECTION_THRESHOLD);
-SimpleHampel hampel(5);
+// SimpleHampel hampel(5);
+SimpleSmoothFilter sf;
+SimpleSignalStretcher sstretch;
 
 SimpleTimer timer;
 int timID;
@@ -73,6 +82,7 @@ void loop_main() {
          }
 
     } else {
+
         // If the detection window is already filled, shift it left with 1
         // and put the new sample in the last place
         for (size_t i = 0; i < DETECTION_WINDOW_LENGTH - 1; i++)
@@ -125,27 +135,79 @@ void loop_main() {
                 }
                 else endDetected = true;
 
+// ---------------------------------------------------
                 // Flip the signal
-                int index = 0;
+                int index = -1;
                 while(index++ < gestureSignalLength) {
                     photodiodeData[1][index] = abs(photodiodeData[1][index] - DETECTION_THRESHOLD);
                     photodiodeData[0][index] = abs(photodiodeData[0][index] - DETECTION_THRESHOLD);
                 }
 
-                // Normalize with the Z-score
-                zScoreCalculator.ComputeZScore(photodiodeData[0], normPhotodiodeData[0], gestureSignalLength, true);
-                zScoreCalculator.ComputeZScore(photodiodeData[1], normPhotodiodeData[1], gestureSignalLength, true);
+                Serial.println("Start");
+                for (int i = 0; i < gestureSignalLength; i++)
+                {
+                    Serial.print(photodiodeData[0][i]);
+                    Serial.print(" ");
+                    Serial.println(photodiodeData[1][i]);
+                }
+                Serial.println("Done");
+
+// ----------------------------------------
+                Serial.println("Smoothing");
+                sf.SmoothSignal(photodiodeData[0], normPhotodiodeData[0], gestureSignalLength, 1);                
+                sf.SmoothSignal(photodiodeData[1], normPhotodiodeData[1], gestureSignalLength, 1);                
 
                 Serial.println("Start");
-
-                // Send the signals
                 for (int i = 0; i < gestureSignalLength; i++)
                 {
                     Serial.print(normPhotodiodeData[0][i]);
                     Serial.print(" ");
-                    Serial.println(0);
+                    Serial.println(normPhotodiodeData[1][i]);
                 }
                 Serial.println("Done");
+
+// ----------------------------------------
+
+                Serial.println("Normalising ...");
+                // Normalize with the Z-score
+                zScoreCalculator.ComputeZScore(normPhotodiodeData[0], gestureSignalLength, true);
+                zScoreCalculator.ComputeZScore(normPhotodiodeData[1], gestureSignalLength, true);
+
+                Serial.println("Start");
+                for (int i = 0; i < gestureSignalLength; i++)
+                {
+                    Serial.print(normPhotodiodeData[0][i]);
+                    Serial.print(" ");
+                    Serial.println(normPhotodiodeData[1][i]);
+                }
+                Serial.println("Done");
+
+// -----------------------------------------
+
+                Serial.println("Stretching ...");
+
+                // Smooth the signal
+                sstretch.StretchSignal(
+                    normPhotodiodeData[0], 
+                    gestureSignalLength,
+                    output[0],
+                    ML_DATA_LENGTH);
+                sstretch.StretchSignal(
+                    normPhotodiodeData[1], 
+                    gestureSignalLength,
+                    output[1],
+                    ML_DATA_LENGTH);
+
+                Serial.println("Start");
+                for (int i = 0; i < ML_DATA_LENGTH; i++)
+                {
+                    Serial.print(output[0][i]);
+                    Serial.print(" ");
+                    Serial.println(output[1][i]);
+                }
+                Serial.println("Done");
+
+                Serial.println("Pipeline Done");
             
                 break;
             }
