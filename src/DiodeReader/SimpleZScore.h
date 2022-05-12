@@ -21,16 +21,26 @@ class SimpleZScore {
 
             // Compute the Z-score and put it in the destination
             index = 0;
-            if (to1)
+            if (to1) {
+                float max = 0;
                 while(index < length) {
                     signal[index] = ((signal[index] - mean) / stdev + 1) / 2.0f;
+                    if (signal[index] > max) max = signal[index]; 
                     index++;
                 }
+                index = 0;
+                while(index < length) {
+                    signal[index] /= max;
+                    index++;
+                }
+            }
             else 
                 while(index++ < length) {
                     signal[index] = (signal[index] - mean) / stdev;
                     index++;
                 }
+            
+
         }
 
         void ComputeZScore(float * signal1, float * signal2, int length, bool to1) {

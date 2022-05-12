@@ -45,6 +45,11 @@ void setup() {
 
 void loop_main() {
 
+    Serial.println(detectionWindowFull);
+    Serial.println(edgeDetector1.getThreshold());
+    Serial.println(edgeDetector2.getThreshold());
+    Serial.println(photodiodeData1 - photodiodeData[0]);
+
     if(detectionWindowFull == false) {
          // If the detection window is not filled, fill it
          reader.read(PD1, photodiodeData1++);
@@ -74,6 +79,14 @@ void loop_main() {
         reader.read(PD2, photodiodeData2);
         reader.read(PD1, taBuffer1++);
         reader.read(PD2, taBuffer2++);
+
+        for (size_t i = 0; i < DETECTION_BUFFER_LENGTH; i++)
+        {
+            Serial.print(photodiodeData[0][i]);
+            Serial.print(" ");
+        }
+        Serial.println();
+        
     }
 
     // If there was no gesture recently, update the threshold
@@ -88,20 +101,26 @@ void loop_main() {
     // Try to detect a start on one of the photodiodes
     if (detectionWindowFull && (edgeDetector2.DetectStart(photodiodeData2) || edgeDetector1.DetectStart(photodiodeData1))) {
 
+        Serial.println("Gesture started");
+
         bool endDetected = false;
 
         // Read enough more data to avoid buffer overflow when checking end
         // of gesture if more samples are checked for end than for start
         while(count++ < DETECTION_END_WINDOW_LENGTH - DETECTION_BUFFER_LENGTH) {
-            reader.read(PD2, ++photodiodeData2);
-            reader.read(PD1, ++photodiodeData1);
+            photodiodeData1++;
+            photodiodeData2++;
+            reader.read(PD2, photodiodeData2);
+            reader.read(PD1, photodiodeData1);
             delay(READ_PERIOD);
         }
 
         // Read new data and check for end of gesture
         while(count++ < READING_WINDOW_LENGTH) {
-            reader.read(PD2, ++photodiodeData2);
-            reader.read(PD1, ++photodiodeData1);
+            photodiodeData1++;
+            photodiodeData2++;
+            reader.read(PD2, photodiodeData2);
+            reader.read(PD1, photodiodeData1);
 
             delay(READ_PERIOD);
 

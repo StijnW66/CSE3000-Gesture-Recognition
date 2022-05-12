@@ -35,7 +35,8 @@ void RunPipeline(uint16_t rawData[2][GESTURE_BUFFER_LENGTH], int gestureSignalLe
 
     Serial.println("Normalising ...");
     // Normalize with the Z-score
-    zScoreCalculator.ComputeZScore(normPhotodiodeData[0], normPhotodiodeData[1], gestureSignalLength, true);
+    zScoreCalculator.ComputeZScore(normPhotodiodeData[0], gestureSignalLength, true);
+    zScoreCalculator.ComputeZScore(normPhotodiodeData[1], gestureSignalLength, true);
 
     Serial.println("Start");
     for (int i = 0; i < gestureSignalLength; i++)
