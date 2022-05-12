@@ -34,4 +34,8 @@ class SimpleGestureEdgeDetector {
             threshold = t;
         }
 
+        int getThreshold() {
+            return threshold;
+        }
+
 };
