@@ -8,7 +8,7 @@ if __name__ == "__main__":
     features, labels = data_processing.preprocess_input(features, labels)
     model = models.slam_cnn_padding(features[0].shape, data_processing.NUM_CLASSES_INITIAL_RAW_DATA)
 
-    font = ImageFont.truetype("Roboto-Regular.ttf", 32)
+    font = ImageFont.truetype("Roboto-Regular.ttf", 48)
     visualkeras.layered_view(
         model,
         to_file="model-visualisation.png",
