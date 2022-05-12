@@ -17,9 +17,10 @@
 #define PD1 A0
 #define PD2 A1
 
-#define DETECTION_WINDOW_LENGTH         5
-#define DETECTION_END_WINDOW_LENGTH     10
-#define READING_WINDOW_LENGTH           250
+#define DETECTION_BUFFER_LENGTH         5
+#define DETECTION_WINDOW_LENGTH         10
+#define DETECTION_END_WINDOW_LENGTH     30
+#define READING_WINDOW_LENGTH           200
 #define THRESHOLD_ADJUSTMENT_LENGTH     100
 #define READ_PERIOD                     10
 #define GESTURE_MIN_TIME_MS             100
@@ -75,7 +76,7 @@ void loop_main() {
 
          count++;
 
-         if (count == DETECTION_WINDOW_LENGTH) {
+         if (count == DETECTION_BUFFER_LENGTH) {
              photodiodeData1 -= 1;
              photodiodeData2 -= 1;
              detectionWindowFull = true;
@@ -85,7 +86,7 @@ void loop_main() {
 
         // If the detection window is already filled, shift it left with 1
         // and put the new sample in the last place
-        for (size_t i = 0; i < DETECTION_WINDOW_LENGTH - 1; i++)
+        for (size_t i = 0; i < DETECTION_BUFFER_LENGTH - 1; i++)
         {
             photodiodeData[0][i] = photodiodeData[0][i+1];
             photodiodeData[1][i] = photodiodeData[1][i+1];
@@ -110,23 +111,23 @@ void loop_main() {
 
         // Read enough more data to avoid buffer overflow when checking end
         // of gesture if more samples are checked for end than for start
-        while(count++ < DETECTION_END_WINDOW_LENGTH - DETECTION_WINDOW_LENGTH) {
-            reader.read(PD2, photodiodeData2++);
-            reader.read(PD1, photodiodeData1++);
+        while(count++ < DETECTION_END_WINDOW_LENGTH - DETECTION_BUFFER_LENGTH) {
+            reader.read(PD2, ++photodiodeData2);
+            reader.read(PD1, ++photodiodeData1);
             delay(READ_PERIOD);
         }
 
         // Read new data and check for end of gesture
         while(count++ < READING_WINDOW_LENGTH) {
-            reader.read(PD2, photodiodeData2++);
-            reader.read(PD1, photodiodeData1++);
+            reader.read(PD2, ++photodiodeData2);
+            reader.read(PD1, ++photodiodeData1);
 
             delay(READ_PERIOD);
 
-            if(edgeDetector.DetectEnd(photodiodeData2 - 1) && edgeDetector.DetectEnd(photodiodeData1 - 1)) {
+            if(edgeDetector.DetectEnd(photodiodeData2) && edgeDetector.DetectEnd(photodiodeData1)) {
 
                 // Determine the gesture length
-                gestureSignalLength = photodiodeData2 - photodiodeData[1];
+                gestureSignalLength = photodiodeData1 - photodiodeData[0] + 1;
 
                 // Reject gestures that took too short time
                 if (gestureSignalLength < GESTURE_MIN_TIME_MS / READ_PERIOD + 1) {
@@ -138,9 +139,9 @@ void loop_main() {
 // ---------------------------------------------------
                 // Flip the signal
                 int index = -1;
-                while(index++ < gestureSignalLength) {
-                    photodiodeData[1][index] = abs(photodiodeData[1][index] - DETECTION_THRESHOLD);
-                    photodiodeData[0][index] = abs(photodiodeData[0][index] - DETECTION_THRESHOLD);
+                while(++index < gestureSignalLength) {
+                    photodiodeData[1][index] = max(DETECTION_THRESHOLD - photodiodeData[1][index], 0);
+                    photodiodeData[0][index] = max(DETECTION_THRESHOLD - photodiodeData[0][index], 0);
                 }
 
                 Serial.println("Start");
@@ -170,8 +171,7 @@ void loop_main() {
 
                 Serial.println("Normalising ...");
                 // Normalize with the Z-score
-                zScoreCalculator.ComputeZScore(normPhotodiodeData[0], gestureSignalLength, true);
-                zScoreCalculator.ComputeZScore(normPhotodiodeData[1], gestureSignalLength, true);
+                zScoreCalculator.ComputeZScore(normPhotodiodeData[0], normPhotodiodeData[1], gestureSignalLength, true);
 
                 Serial.println("Start");
                 for (int i = 0; i < gestureSignalLength; i++)
