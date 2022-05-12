@@ -30,9 +30,10 @@ def plotData(ax, data1, data2, data3, title):
     l = len(data1)
     xs = list(np.arange(0, l))
 
-    ax.plot(xs, data1, c="r")
-    ax.plot(xs, data2, c="b")
-    ax.plot(xs, data3, c="g")
+    ax.plot(xs, data1, c="r", label="right")
+    ax.plot(xs, data2, c="b", label="left")
+    ax.plot(xs, data3, c="g", label="up")
+    ax.legend()
     ax.set_title(title)
 
 while True:

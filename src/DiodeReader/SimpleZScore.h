@@ -29,10 +29,10 @@ class SimpleZScore {
                     index++;
                 }
                 index = 0;
-                while(index < length) {
-                    signal[index] /= max;
-                    index++;
-                }
+                // while(index < length) {
+                //     signal[index] /= max;
+                //     index++;
+                // }
             }
             else 
                 while(index++ < length) {
