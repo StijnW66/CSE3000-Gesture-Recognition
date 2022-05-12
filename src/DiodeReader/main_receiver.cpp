@@ -11,22 +11,27 @@
 
 #define PD1 A0
 #define PD2 A1
+#define PD3 A2
 
 int count = 0;
 bool detectionWindowFull = false;
 
-uint16_t thresholdAdjustmentBuffer[2][THRESHOLD_ADJ_BUFFER_LENGTH];
+uint16_t thresholdAdjustmentBuffer[3][THRESHOLD_ADJ_BUFFER_LENGTH];
 uint16_t * taBuffer1 = thresholdAdjustmentBuffer[0];
 uint16_t * taBuffer2 = thresholdAdjustmentBuffer[1];
+uint16_t * taBuffer3 = thresholdAdjustmentBuffer[2];
 
-uint16_t photodiodeData[2][READING_WINDOW_LENGTH];
+uint16_t photodiodeData[3][READING_WINDOW_LENGTH];
 uint16_t * photodiodeData1 = photodiodeData[0];
 uint16_t * photodiodeData2 = photodiodeData[1];
+uint16_t * photodiodeData3 = photodiodeData[2];
+
 int gestureSignalLength;
 
 SimplePhotoDiodeReader reader;
 SimpleGestureEdgeDetector edgeDetector1(DETECTION_WINDOW_LENGTH, DETECTION_END_WINDOW_LENGTH, 750);
 SimpleGestureEdgeDetector edgeDetector2(DETECTION_WINDOW_LENGTH, DETECTION_END_WINDOW_LENGTH, 750);
+SimpleGestureEdgeDetector edgeDetector3(DETECTION_WINDOW_LENGTH, DETECTION_END_WINDOW_LENGTH, 750);
 
 SimpleTimer timer;
 int timID;
@@ -37,6 +42,7 @@ void setup() {
 
     pinMode(PD1, INPUT);
     pinMode(PD2, INPUT);
+    pinMode(PD3, INPUT);
 
     Serial.begin(9600);
 
@@ -44,24 +50,21 @@ void setup() {
 }
 
 void loop_main() {
-
-    Serial.println(detectionWindowFull);
-    Serial.println(edgeDetector1.getThreshold());
-    Serial.println(edgeDetector2.getThreshold());
-    Serial.println(photodiodeData1 - photodiodeData[0]);
-
     if(detectionWindowFull == false) {
          // If the detection window is not filled, fill it
          reader.read(PD1, photodiodeData1++);
          reader.read(PD2, photodiodeData2++);
+         reader.read(PD3, photodiodeData3++);
          reader.read(PD1, taBuffer1++);
          reader.read(PD2, taBuffer2++);
+         reader.read(PD3, taBuffer3++);
 
          count++;
 
          if (count == DETECTION_BUFFER_LENGTH) {
              photodiodeData1 -= 1;
              photodiodeData2 -= 1;
+             photodiodeData3 -= 1;
              detectionWindowFull = true;
          }
 
@@ -73,20 +76,15 @@ void loop_main() {
         {
             photodiodeData[0][i] = photodiodeData[0][i+1];
             photodiodeData[1][i] = photodiodeData[1][i+1];
+            photodiodeData[2][i] = photodiodeData[2][i+1];
         }
 
         reader.read(PD1, photodiodeData1);
         reader.read(PD2, photodiodeData2);
+        reader.read(PD3, photodiodeData3);
         reader.read(PD1, taBuffer1++);
         reader.read(PD2, taBuffer2++);
-
-        for (size_t i = 0; i < DETECTION_BUFFER_LENGTH; i++)
-        {
-            Serial.print(photodiodeData[0][i]);
-            Serial.print(" ");
-        }
-        Serial.println();
-        
+        reader.read(PD3, taBuffer3++);        
     }
 
     // If there was no gesture recently, update the threshold
@@ -94,12 +92,16 @@ void loop_main() {
         
         edgeDetector1.setThreshold((QuickMedian<uint16_t>::GetMedian(thresholdAdjustmentBuffer[0], THRESHOLD_ADJ_BUFFER_LENGTH) * 4) / 5);
         edgeDetector2.setThreshold((QuickMedian<uint16_t>::GetMedian(thresholdAdjustmentBuffer[1], THRESHOLD_ADJ_BUFFER_LENGTH) * 4) / 5);
+        edgeDetector3.setThreshold((QuickMedian<uint16_t>::GetMedian(thresholdAdjustmentBuffer[2], THRESHOLD_ADJ_BUFFER_LENGTH) * 4) / 5);
         taBuffer1 = thresholdAdjustmentBuffer[0];
         taBuffer2 = thresholdAdjustmentBuffer[1];
+        taBuffer3 = thresholdAdjustmentBuffer[2];
     }
     
     // Try to detect a start on one of the photodiodes
-    if (detectionWindowFull && (edgeDetector2.DetectStart(photodiodeData2) || edgeDetector1.DetectStart(photodiodeData1))) {
+    if (detectionWindowFull && (edgeDetector2.DetectStart(photodiodeData2) 
+                                || edgeDetector1.DetectStart(photodiodeData1)
+                                || edgeDetector3.DetectStart(photodiodeData3))) {
 
         Serial.println("Gesture started");
 
@@ -110,8 +112,10 @@ void loop_main() {
         while(count++ < DETECTION_END_WINDOW_LENGTH - DETECTION_BUFFER_LENGTH) {
             photodiodeData1++;
             photodiodeData2++;
+            photodiodeData3++;
             reader.read(PD2, photodiodeData2);
             reader.read(PD1, photodiodeData1);
+            reader.read(PD3, photodiodeData3);
             delay(READ_PERIOD);
         }
 
@@ -119,12 +123,16 @@ void loop_main() {
         while(count++ < READING_WINDOW_LENGTH) {
             photodiodeData1++;
             photodiodeData2++;
+            photodiodeData3++;
             reader.read(PD2, photodiodeData2);
             reader.read(PD1, photodiodeData1);
+            reader.read(PD3, photodiodeData3);
 
             delay(READ_PERIOD);
 
-            if(edgeDetector2.DetectEnd(photodiodeData2) && edgeDetector1.DetectEnd(photodiodeData1)) {
+            if(edgeDetector2.DetectEnd(photodiodeData2) 
+                && edgeDetector1.DetectEnd(photodiodeData1)
+                && edgeDetector3.DetectEnd(photodiodeData3)) {
 
                 // Determine the gesture length
                 gestureSignalLength = photodiodeData1 - photodiodeData[0] + 1;
@@ -140,6 +148,7 @@ void loop_main() {
                 // Flip the signal
                 int index = -1;
                 while(++index < gestureSignalLength) {
+                    photodiodeData[2][index] = max(edgeDetector3.getThreshold() - photodiodeData[2][index], 0);
                     photodiodeData[1][index] = max(edgeDetector2.getThreshold() - photodiodeData[1][index], 0);
                     photodiodeData[0][index] = max(edgeDetector1.getThreshold() - photodiodeData[0][index], 0);
                 }
@@ -149,7 +158,9 @@ void loop_main() {
                 {
                     Serial.print(photodiodeData[0][i]);
                     Serial.print(" ");
-                    Serial.println(photodiodeData[1][i]);
+                    Serial.print(photodiodeData[1][i]);
+                    Serial.print(" ");
+                    Serial.println(photodiodeData[2][i]);
                 }
                 Serial.println("Done");
 // ----------------------------------------
@@ -164,14 +175,17 @@ void loop_main() {
         detectionWindowFull = false;
         photodiodeData1 = photodiodeData[0];
         photodiodeData2 = photodiodeData[1];
+        photodiodeData3 = photodiodeData[2];
         taBuffer1 = thresholdAdjustmentBuffer[0];
         taBuffer2 = thresholdAdjustmentBuffer[1];
+        taBuffer3 = thresholdAdjustmentBuffer[2];
         count = 0;
 
         // Gesture took too long -> Light Intensity Change -> Threshold Recalculation
         if(!endDetected) {
             edgeDetector1.setThreshold((QuickMedian<uint16_t>::GetMedian(photodiodeData[0], READING_WINDOW_LENGTH) * 4) / 5);
             edgeDetector2.setThreshold((QuickMedian<uint16_t>::GetMedian(photodiodeData[1], READING_WINDOW_LENGTH) * 4) / 5);
+            edgeDetector3.setThreshold((QuickMedian<uint16_t>::GetMedian(photodiodeData[2], READING_WINDOW_LENGTH) * 4) / 5);
         }
 
         timer.restartTimer(timID);

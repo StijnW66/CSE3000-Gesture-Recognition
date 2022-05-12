@@ -34,16 +34,14 @@ class SimpleZScore {
                 while(index < length) {
                     if (signal[index] != 0)
                         signal[index] = ((signal[index] - mean) / stdev + 1) / 2.0f;
-    
-                    if (signal[index] > max) max = signal[index]; 
-    
+                        if (signal[index] > max) max = signal[index]; 
                     index++;
                 }
                 index = 0;
-                // while(index < length) {
-                //     signal[index] /= max;
-                //     index++;
-                // }
+                while(index < length) {
+                    if(signal[index] != 0) signal[index] /= max;
+                    index++;
+                }
             }
             else 
                 while(index++ < length) {
