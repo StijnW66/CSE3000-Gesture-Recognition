@@ -21,7 +21,7 @@ def _convert_no_optimisations(model: tf.keras.Model):
     open("model_no_optimisations.tflite", "wb").write(tflite_model)
 
 
-def _convert_with_quantization(model: tf.keras.Model, dataset: tf.data.Dataset):
+def _convert_with_quantization(model: tf.keras.Model, dataset: np.ndarray):
     """
     Convert a Keras model to a TensorflowLite model, applying default optimisations
     and quantization, and save it to a file.

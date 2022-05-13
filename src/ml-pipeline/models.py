@@ -1,5 +1,4 @@
 from typing import List, Tuple
-from data_processing import NUM_CLASSES_UWAVE
 import tensorflow as tf
 
 def _vgg_block(num_convs: int, num_channels: int) -> tf.keras.Model:
@@ -19,6 +18,7 @@ def _vgg_block(num_convs: int, num_channels: int) -> tf.keras.Model:
                                     padding='same',activation='relu'))
     blk.add(tf.keras.layers.MaxPool2D(pool_size=2, strides=2))
     return blk
+
 
 def vgg(input_shape: Tuple, conv_arch: List[Tuple[int, int]], num_classes: int) -> tf.keras.Model:
     """
@@ -71,6 +71,7 @@ def keras_mnist_example(input_shape: Tuple, num_classes: int) -> tf.keras.Model:
         tf.keras.layers.Dense(num_classes, activation="softmax", name="predictions"),
     ])
 
+
 def slam_cnn(input_shape: Tuple, num_classes: int) -> tf.keras.Model:
     return tf.keras.models.Sequential([
         tf.keras.Input(shape=input_shape, name="sensor image"),
@@ -82,6 +83,7 @@ def slam_cnn(input_shape: Tuple, num_classes: int) -> tf.keras.Model:
         tf.keras.layers.Dropout(0.5),
         tf.keras.layers.Dense(num_classes, activation="softmax", name="predictions"),
     ])
+
 
 def slam_cnn_padding(input_shape: Tuple, num_classes: int) -> tf.keras.Model:
     return tf.keras.models.Sequential([

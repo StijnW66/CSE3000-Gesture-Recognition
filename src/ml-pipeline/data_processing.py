@@ -57,9 +57,9 @@ def load_and_combine_initial_raw_data() -> Tuple[np.ndarray, np.ndarray]:
         class_count += 1
 
     # Convert to numpy arrays and add channel dimension to features
-    features = np.array(features)
+    features = np.array(features, dtype=np.uint16)
     features = np.expand_dims(features, -1)
-    labels = np.array(labels)
+    labels = np.array(labels, dtype=np.uint8)
     return features, labels
 
 
@@ -82,7 +82,7 @@ def load_and_combine_uwave() -> Tuple[np.ndarray, np.ndarray]:
     features = pd.DataFrame(combined_data)
     labels = features.pop("target")
 
-    return features.to_numpy(np.float32), labels.to_numpy(np.int8)
+    return features.to_numpy(np.float32), labels.to_numpy(np.uint8)
 
 
 def preprocess_input(features: np.ndarray, labels: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
@@ -120,8 +120,8 @@ def split_to_tf_datasets(features: np.ndarray, labels: np.ndarray) -> Tuple[tf.d
         labels: Numpy array where each entry is an integer corresponding to a class
 
     Returns:
-        train_dataset: Tensorflow dataset for use with training
-        test_dataset: Tensorflow dataset for use with testing
+        train_dataset: Batched Tensorflow dataset for use with training
+        test_dataset: Batched Tensorflow dataset for use with testing
     """
     x_train, x_test, y_train, y_test = train_test_split(features,
                                                         labels,
