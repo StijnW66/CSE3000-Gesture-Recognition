@@ -35,6 +35,7 @@ SimpleGestureEdgeDetector edgeDetector[NUM_PDs] = {
     SimpleGestureEdgeDetector(DETECTION_WINDOW_LENGTH, DETECTION_END_WINDOW_LENGTH, 750),
     SimpleGestureEdgeDetector(DETECTION_WINDOW_LENGTH, DETECTION_END_WINDOW_LENGTH, 750)
 };
+PreProcessingPipeline pipeline;
 
 SimpleTimer timer;
 int timID;
@@ -153,7 +154,8 @@ void loop_main() {
                 sendSignal(photodiodeData, gestureSignalLength);
 // ----------------------------------------
 
-                RunPipeline(photodiodeData, gestureSignalLength);
+                // Run the pipeline
+                pipeline.RunPipeline(photodiodeData, gestureSignalLength);
                 
                 break;
             }

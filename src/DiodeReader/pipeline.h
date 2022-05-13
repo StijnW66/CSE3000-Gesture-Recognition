@@ -9,44 +9,49 @@
 #include "parameters.h"
 #include "util.h"
 
-float normPhotodiodeData[NUM_PDs][READING_WINDOW_LENGTH];
-float output[NUM_PDs][ML_DATA_LENGTH];
+class PreProcessingPipeline {
 
-SimpleZScore zScoreCalculator;
-// SimpleHampel hampel(5);
-SimpleSmoothFilter sf;
-SimpleSignalStretcher sstretch;
+private:
+    float normPhotodiodeData[NUM_PDs][READING_WINDOW_LENGTH];
+    float output[NUM_PDs][ML_DATA_LENGTH];
 
-void RunPipeline(uint16_t rawData[NUM_PDs][GESTURE_BUFFER_LENGTH], int gestureSignalLength)
-{
-    Serial.println("Smoothing");
-    for (size_t i = 0; i < NUM_PDs; i++)
-        sf.SmoothSignal(rawData[i], normPhotodiodeData[i], gestureSignalLength, 1);     
+    SimpleZScore zScoreCalculator;
+    // SimpleHampel hampel(5);
+    SimpleSmoothFilter sf;
+    SimpleSignalStretcher sstretch;
 
-    sendSignal(normPhotodiodeData, gestureSignalLength);
+public:
+    void RunPipeline(uint16_t rawData[NUM_PDs][GESTURE_BUFFER_LENGTH], int gestureSignalLength)
+    {
+        Serial.println("Smoothing");
+        for (size_t i = 0; i < NUM_PDs; i++)
+            sf.SmoothSignal(rawData[i], normPhotodiodeData[i], gestureSignalLength, 1);     
 
-    // ----------------------------------------
+        sendSignal(normPhotodiodeData, gestureSignalLength);
 
-    Serial.println("Normalising ...");
-    // Normalize with the Z-score
-    for (size_t i = 0; i < NUM_PDs; i++)
-        zScoreCalculator.ComputeZScore(normPhotodiodeData[i], gestureSignalLength, true);
+        // ----------------------------------------
 
-    sendSignal(normPhotodiodeData, gestureSignalLength);   
+        Serial.println("Normalising ...");
+        // Normalize with the Z-score
+        for (size_t i = 0; i < NUM_PDs; i++)
+            zScoreCalculator.ComputeZScore(normPhotodiodeData[i], gestureSignalLength, true);
 
-    // -----------------------------------------
+        sendSignal(normPhotodiodeData, gestureSignalLength);   
 
-    Serial.println("Stretching ...");
+        // -----------------------------------------
 
-    // Smooth the signal
-    for (size_t i = 0; i < NUM_PDs; i++)
-        sstretch.StretchSignal(
-            normPhotodiodeData[i],
-            gestureSignalLength,
-            output[i],
-            ML_DATA_LENGTH);
+        Serial.println("Stretching ...");
 
-    sendSignal(output, ML_DATA_LENGTH);   
+        // Smooth the signal
+        for (size_t i = 0; i < NUM_PDs; i++)
+            sstretch.StretchSignal(
+                normPhotodiodeData[i],
+                gestureSignalLength,
+                output[i],
+                ML_DATA_LENGTH);
 
-    Serial.println("Pipeline Done");
-}
+        sendSignal(output, ML_DATA_LENGTH);   
+
+        Serial.println("Pipeline Done");
+    }
+};
