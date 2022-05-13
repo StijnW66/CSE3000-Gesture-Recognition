@@ -7,7 +7,7 @@
 #include "SimpleGestureEdgeDetector.h"
 
 #include "parameters.h"
-#include "pipeline.h"
+#include "PreProcessingPipeline.h"
 #include "util.h"
 
 int count = 0;
