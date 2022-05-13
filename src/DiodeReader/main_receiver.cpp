@@ -13,29 +13,18 @@
 int count = 0;
 bool detectionWindowFull = false;
 
+// Buffers for dynamic threshold adjustment
 uint16_t thresholdAdjustmentBuffer[NUM_PDs][THRESHOLD_ADJ_BUFFER_LENGTH];
-uint16_t * taBuffer[NUM_PDs] = {
-    thresholdAdjustmentBuffer[0],
-    thresholdAdjustmentBuffer[1],
-    thresholdAdjustmentBuffer[2]
-};
+uint16_t * taBuffer[NUM_PDs];
 
+// Buffers for gesture signal capture
 uint16_t photodiodeData[NUM_PDs][READING_WINDOW_LENGTH];
-uint16_t * photodiodeDataPtr[NUM_PDs] = {
-    photodiodeData[0],
-    photodiodeData[1],
-    photodiodeData[2]
-};
-
+uint16_t * photodiodeDataPtr[NUM_PDs];
 int gestureSignalLength;
 
-SimplePhotoDiodeReader reader;
-SimpleGestureEdgeDetector edgeDetector[NUM_PDs] = {
-    SimpleGestureEdgeDetector(DETECTION_WINDOW_LENGTH, DETECTION_END_WINDOW_LENGTH, 750),
-    SimpleGestureEdgeDetector(DETECTION_WINDOW_LENGTH, DETECTION_END_WINDOW_LENGTH, 750),
-    SimpleGestureEdgeDetector(DETECTION_WINDOW_LENGTH, DETECTION_END_WINDOW_LENGTH, 750)
-};
-PreProcessingPipeline pipeline;
+SimplePhotoDiodeReader      reader;
+SimpleGestureEdgeDetector   edgeDetector[NUM_PDs];
+PreProcessingPipeline       pipeline;
 
 SimpleTimer timer;
 int timID;
@@ -47,6 +36,9 @@ void setup() {
     for (size_t i = 0; i < NUM_PDs; i++)
     {
         pinMode(pds[i], INPUT);
+        taBuffer[i]          =   thresholdAdjustmentBuffer[i];
+        photodiodeDataPtr[i] =   photodiodeData[i];
+        edgeDetector[i]      =   SimpleGestureEdgeDetector(DETECTION_WINDOW_LENGTH, DETECTION_END_WINDOW_LENGTH, 750);
     }
 
     Serial.begin(9600);
@@ -172,12 +164,9 @@ void loop_main() {
         count = 0;
 
         // Gesture took too long -> Light Intensity Change -> Threshold Recalculation
-        if(!endDetected) {
+        if(!endDetected)
             for (size_t i = 0; i < NUM_PDs; i++)
-            {
                 edgeDetector[i].setThreshold((QuickMedian<uint16_t>::GetMedian(photodiodeData[i], READING_WINDOW_LENGTH) * 4) / 5);
-            }
-        }
 
         timer.restartTimer(timID);
     }

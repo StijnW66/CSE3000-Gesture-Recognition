@@ -8,6 +8,7 @@ class SimpleGestureEdgeDetector {
         int threshold;
 
     public: 
+        SimpleGestureEdgeDetector() {}
         SimpleGestureEdgeDetector(int detWL, int detEWL, int t) : detectionWindowLength(detWL), detectionEndWindowLength(detEWL), threshold(t) {}
 
         bool DetectStart(uint16_t * signal) {
