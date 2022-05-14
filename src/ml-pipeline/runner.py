@@ -10,8 +10,7 @@ def compile_model(model: tf.keras.Model):
     model.compile(
         optimizer=tf.keras.optimizers.Adam(),
         loss=tf.keras.losses.SparseCategoricalCrossentropy(),
-        metrics=[tf.keras.metrics.SparseCategoricalAccuracy()]
-    )
+        metrics=[tf.keras.metrics.SparseCategoricalAccuracy()])
 
 
 def train_and_evaluate(model: tf.keras.Model,
