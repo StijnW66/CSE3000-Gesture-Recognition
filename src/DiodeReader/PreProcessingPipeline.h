@@ -2,6 +2,7 @@
 #include <inttypes.h>
 
 #include "SimpleZScore.h"
+#include "SimpleMaxNormaliser.h"
 // #include "SimpleHampel.h"
 #include "SimpleSmoothFilter.h"
 #include "SimpleSignalStretcher.h"
@@ -15,7 +16,8 @@ private:
     float normPhotodiodeData[NUM_PDs][READING_WINDOW_LENGTH];
     float output[NUM_PDs][ML_DATA_LENGTH];
 
-    SimpleZScore zScoreCalculator;
+    // SimpleZScore zScoreCalculator;
+    SimpleMaxNormaliser maxNormaliser;
     // SimpleHampel hampel(5);
     SimpleSmoothFilter sf;
     SimpleSignalStretcher sstretch;
@@ -34,7 +36,7 @@ public:
         Serial.println("Normalising ...");
         // Normalize with the Z-score
         for (size_t i = 0; i < NUM_PDs; i++)
-            zScoreCalculator.ComputeZScore(normPhotodiodeData[i], gestureSignalLength, true);
+            maxNormaliser.Normalise(normPhotodiodeData[i], gestureSignalLength);
 
         sendSignal(normPhotodiodeData, gestureSignalLength);   
 
