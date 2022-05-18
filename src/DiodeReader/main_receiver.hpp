@@ -127,6 +127,21 @@ void receiverLoopMain() {
                         photodiodeData[i][index] = max(edgeDetector[i].getThreshold() - photodiodeData[i][index], 0);
                 }
 
+                bool trimmed = false;
+
+                while(index-- >= 0) {
+                    bool zero = true;
+                    for (size_t i = 0; i < NUM_PDs; i++)
+                        zero = zero && (photodiodeData[i][index] == 0);
+                    
+                    if (zero) {
+                        trimmed = true;
+                        gestureSignalLength--;
+                    }
+                }
+
+                if(trimmed) gestureSignalLength++;
+
                 sendSignal(photodiodeData, gestureSignalLength);
 // ----------------------------------------
 

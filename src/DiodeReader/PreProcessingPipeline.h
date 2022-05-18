@@ -1,5 +1,7 @@
 #include <Arduino.h>
 #include <inttypes.h>
+#include <initializer_list>
+#include <vector>
 
 #include "SimpleZScore.h"
 #include "SimpleMaxNormaliser.h"
@@ -19,15 +21,16 @@ private:
     // SimpleZScore zScoreCalculator;
     SimpleMaxNormaliser maxNormaliser;
     // SimpleHampel hampel(5);
-    SimpleSmoothFilter sf;
+    SimpleSmoothFilter smf;
     SimpleSignalStretcher sstretch;
 
 public:
     void RunPipeline(uint16_t rawData[NUM_PDs][GESTURE_BUFFER_LENGTH], int gestureSignalLength)
     {
         Serial.println("Smoothing");
+        std::vector<float> ws = {0.25f, 0.5f, 0.25f};
         for (size_t i = 0; i < NUM_PDs; i++)
-            sf.SmoothSignal(rawData[i], normPhotodiodeData[i], gestureSignalLength, 1);     
+            smf.SmoothSignal(rawData[i], normPhotodiodeData[i], gestureSignalLength, 1, ws.data());     
 
         sendSignal(normPhotodiodeData, gestureSignalLength);
 
