@@ -18,7 +18,7 @@ uint16_t thresholdAdjustmentBuffer[NUM_PDs][THRESHOLD_ADJ_BUFFER_LENGTH];
 uint16_t * taBuffer[NUM_PDs];
 
 // Buffers for gesture signal capture
-uint16_t photodiodeData[NUM_PDs][READING_WINDOW_LENGTH];
+uint16_t photodiodeData[NUM_PDs][GESTURE_BUFFER_LENGTH];
 uint16_t * photodiodeDataPtr[NUM_PDs];
 int gestureSignalLength;
 
@@ -66,7 +66,7 @@ void receiverLoopMain() {
         
         for (size_t i = 0; i < NUM_PDs; i++)
         {
-            edgeDetector[i].setThreshold((QuickMedian<uint16_t>::GetMedian(thresholdAdjustmentBuffer[i], THRESHOLD_ADJ_BUFFER_LENGTH) * 4) / 5);
+            edgeDetector[i].setThreshold((QuickMedian<uint16_t>::GetMedian(thresholdAdjustmentBuffer[i], THRESHOLD_ADJ_BUFFER_LENGTH) * 9) / 10);
             taBuffer[i] = thresholdAdjustmentBuffer[i];
         }
     }
@@ -94,7 +94,7 @@ void receiverLoopMain() {
         }
 
         // Read new data and check for end of gesture
-        while(count++ < READING_WINDOW_LENGTH) {
+        while(count++ < GESTURE_BUFFER_LENGTH) {
             for (size_t i = 0; i < NUM_PDs; i++)
             {
                 photodiodeDataPtr[i]++;
@@ -129,7 +129,9 @@ void receiverLoopMain() {
 
                 bool trimmed = false;
 
-                while(index-- >= 0) {
+                int trimCount = 0;
+
+                while(index-- >= 0 && trimCount++ < DETECTION_END_WINDOW_LENGTH * DETECTION_END_WINDOW_TRIM) {
                     bool zero = true;
                     for (size_t i = 0; i < NUM_PDs; i++)
                         zero = zero && (photodiodeData[i][index] == 0);

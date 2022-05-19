@@ -8,6 +8,7 @@
 // #include "SimpleHampel.h"
 #include "SimpleSmoothFilter.h"
 #include "SimpleSignalStretcher.h"
+#include "SimpleSignalFlipper.h"
 
 #include "parameters.h"
 #include "util.h"
@@ -15,7 +16,7 @@
 class PreProcessingPipeline {
 
 private:
-    float normPhotodiodeData[NUM_PDs][READING_WINDOW_LENGTH];
+    float normPhotodiodeData[NUM_PDs][GESTURE_BUFFER_LENGTH];
     float output[NUM_PDs][ML_DATA_LENGTH];
 
     // SimpleZScore zScoreCalculator;
@@ -23,6 +24,7 @@ private:
     // SimpleHampel hampel(5);
     SimpleSmoothFilter smf;
     SimpleSignalStretcher sstretch;
+    SimpleSignalFlipper sFlipper;
 
 public:
     void RunPipeline(uint16_t rawData[NUM_PDs][GESTURE_BUFFER_LENGTH], int gestureSignalLength)
@@ -39,7 +41,7 @@ public:
         Serial.println("Normalising ...");
         // Normalize with the Z-score
         for (size_t i = 0; i < NUM_PDs; i++)
-            maxNormaliser.Normalise(normPhotodiodeData[i], gestureSignalLength);
+            maxNormaliser.Normalise(normPhotodiodeData, gestureSignalLength);
 
         sendSignal(normPhotodiodeData, gestureSignalLength);   
 
@@ -48,12 +50,20 @@ public:
         Serial.println("Stretching ...");
 
         // Smooth the signal
-        for (size_t i = 0; i < NUM_PDs; i++)
+        for (size_t i = 0; i < NUM_PDs; i++) {
             sstretch.StretchSignal(
                 normPhotodiodeData[i],
                 gestureSignalLength,
                 output[i],
                 ML_DATA_LENGTH);
+
+            // Flip the signal
+            sFlipper.FlipSignal(
+                output[i],
+                ML_DATA_LENGTH,
+                0.0f,1.0f);
+        }
+        
 
         sendSignal(output, ML_DATA_LENGTH);   
 
