@@ -1,4 +1,5 @@
 from PIL import ImageFont
+import constants
 import data_processing
 import models
 import visualkeras
@@ -6,7 +7,7 @@ import visualkeras
 if __name__ == "__main__":
     features, labels = data_processing.load_and_combine_uwave()
     features, labels = data_processing.preprocess_input(features, labels)
-    model = models.slam_cnn_padding(features[0].shape, data_processing.NUM_CLASSES_INITIAL_RAW_DATA)
+    model = models.slam_cnn_padding(features[0].shape, constants.NUM_CLASSES_INITIAL_RAW_DATA)
 
     font = ImageFont.truetype("Roboto-Regular.ttf", 48)
     visualkeras.layered_view(

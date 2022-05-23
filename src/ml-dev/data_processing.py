@@ -6,11 +6,7 @@ import tensorflow as tf
 import numpy as np
 import pandas as pd
 import pickle
-
-BATCH_SIZE = 128
-RANDOM_SEED = 69 # Allows for train-test split to be deterministic
-NUM_CLASSES_UWAVE = 8
-NUM_CLASSES_INITIAL_RAW_DATA = 8
+import constants
 
 def _load_all_pickled_data(file_path) -> List:
     """
@@ -126,9 +122,9 @@ def split_to_tf_datasets(features: np.ndarray, labels: np.ndarray) -> Tuple[tf.d
     x_train, x_test, y_train, y_test = train_test_split(features,
                                                         labels,
                                                         test_size=0.25,
-                                                        random_state=RANDOM_SEED)
-    train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train)).batch(BATCH_SIZE)
-    test_dataset = tf.data.Dataset.from_tensor_slices((x_test, y_test)).batch(BATCH_SIZE)
+                                                        random_state=constants.RANDOM_SEED)
+    train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train)).batch(constants.BATCH_SIZE)
+    test_dataset = tf.data.Dataset.from_tensor_slices((x_test, y_test)).batch(constants.BATCH_SIZE)
     return train_dataset, test_dataset
 
 

@@ -1,6 +1,5 @@
 from typing import Tuple
 from sklearn.metrics import accuracy_score
-from runner import compile_model, train_and_evaluate
 import data_processing
 import models
 import numpy as np
@@ -9,7 +8,7 @@ import tensorflow_model_optimization as tfmot
 
 representative_dataset = None # TODO: Devise less hacky solution
 
-def _convert_no_optimisations(model: tf.keras.Model):
+def _convert_no_optimisations(model: tf.keras.Model, write_to_file: bool = True):
     """
     Convert a Keras model to a TensorflowLite model without applying any additional
     optimisations and save it to a file.
@@ -19,10 +18,13 @@ def _convert_no_optimisations(model: tf.keras.Model):
     """
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
     tflite_model = converter.convert()
-    open("model_no_optimisations.tflite", "wb").write(tflite_model)
+    if write_to_file:
+        open("model_no_optimisations.tflite", "wb").write(tflite_model)
+    return tflite_model
 
 
-def _convert_with_quantization(model: tf.keras.Model, dataset: np.ndarray):
+def _convert_with_quantization(model: tf.keras.Model, dataset: np.ndarray,
+                               write_to_file: bool = True):
     """
     Convert a Keras model to a TensorflowLite model, applying default optimisations
     and quantization, and save it to a file.
@@ -43,12 +45,15 @@ def _convert_with_quantization(model: tf.keras.Model, dataset: np.ndarray):
     converter.representative_dataset = representative_dataset_generator
 
     tflite_model = converter.convert()
-    open("model_quantization.tflite", "wb").write(tflite_model)
+    if write_to_file:
+        open("model_quantization.tflite", "wb").write(tflite_model)
+    return tflite_model
 
 
 def _convert_with_quantization_aware_training(model: tf.keras.Model,
                                               train_dataset: tf.data.Dataset,
-                                              test_dataset: tf.data.Dataset):
+                                              test_dataset: tf.data.Dataset,
+                                              write_to_file: bool = True):
     """
     Convert a Keras model to a quantization-aware model, train and evaluate it
     (applying default optimisation), and save it to a file.
@@ -58,16 +63,20 @@ def _convert_with_quantization_aware_training(model: tf.keras.Model,
         train_dataset: The dataset to use for training the model
         test_dataset: The dataset to use for evaluating the model
     """
+    from runner import compile_model, train_and_evaluate_tf
+
     # Compile, train and evaluate
     quantization_aware_model = tfmot.quantization.keras.quantize_model(model)
     compile_model(quantization_aware_model)
-    train_and_evaluate(quantization_aware_model, train_dataset, test_dataset)
+    train_and_evaluate_tf(quantization_aware_model, train_dataset, test_dataset)
 
-    # Convert and write to file
+    # Convert and (optionally) write to file
     converter = tf.lite.TFLiteConverter.from_keras_model(quantization_aware_model)
     converter.optimizations = [tf.lite.Optimize.DEFAULT]
     tflite_model = converter.convert()
-    open("model_quantization_aware_training.tflite", "wb").write(tflite_model)
+    if write_to_file:
+        open("model_quantization_aware_training.tflite", "wb").write(tflite_model)
+    return tflite_model
 
 
 def evaluate_tflite_model(file_path: str, model: tf.keras.Model,
@@ -127,8 +136,9 @@ if __name__ == "__main__":
         features[0].shape,
         data_processing.NUM_CLASSES_INITIAL_RAW_DATA)
 
+    from runner import compile_model, train_and_evaluate_tf
     compile_model(running_model)
-    train_and_evaluate(running_model, train_dataset, test_dataset)
+    train_and_evaluate_tf(running_model, train_dataset, test_dataset)
 
     _convert_no_optimisations(running_model)
     _convert_with_quantization(running_model, features)
