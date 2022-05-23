@@ -3,9 +3,10 @@
 
 #define DETECTION_BUFFER_LENGTH         10
 #define DETECTION_WINDOW_LENGTH         5
-#define DETECTION_END_WINDOW_LENGTH     30
+#define DETECTION_END_WINDOW_LENGTH     100
+#define DETECTION_END_WINDOW_TRIM       0.90f
 
-#define GESTURE_BUFFER_LENGTH           200
+#define GESTURE_BUFFER_LENGTH           500
 #define THRESHOLD_ADJ_BUFFER_LENGTH     100
 
 #define READ_PERIOD                     10

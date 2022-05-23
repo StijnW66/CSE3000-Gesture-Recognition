@@ -1,11 +1,15 @@
+#include<vector>
+#include<Arduino.h>
+
 class SimpleSmoothFilter {
 
     public:
         SimpleSmoothFilter() {}
 
-        void SmoothSignal(float * signal, int length, int windSide) {
+        void SmoothSignal(float * signal, int length, int windSide, float weights[]) {
             int windSize = 2 * windSide + 1;
             float window[windSize];
+            float weightsWindow[windSize];
 
             int si = windSide;
             int indexToPlace = 0;
@@ -16,6 +20,7 @@ class SimpleSmoothFilter {
             // Keep first and last signal data without filtering
             do {
                 window[indexToPlace] = signal[indexToPlace];
+                weightsWindow[indexToPlace] = weights[indexToPlace];
             } while(++indexToPlace < windSize);
 
             indexToPlace = windSize - 1;
@@ -26,40 +31,36 @@ class SimpleSmoothFilter {
             while(si < length - windSide) {
 
                 window[indexToPlace] = signal[si + windSide];
+                weightsWindow[indexToPlace] = weights[(si + windSide) % windSize];
                 indexToPlace = (indexToPlace + 1) % windSize;
 
                 while(wi < windSize) {
-                    avg += window[wi++];
+                    avg += weightsWindow[wi] * window[wi];
+                    Serial.println(avg);
+                    wi++;
                 }
-
-                avg /= windSize;
 
                 signal[si++] = avg;
                 avg = 0;
                 wi = 0;
             }
-
         }
 
-        void SmoothSignal(uint16_t * signal, float * dest, int length, int windSide) {
+        void SmoothSignal(uint16_t * signal, float * dest, int length, int windSide, float weights[]) {
             int windSize = 2 * windSide + 1;
             float window[windSize];
+            float weightsWindow[windSize];
 
             int si = windSide;
             int indexToPlace = 0;
             int wi = 0;
             float avg = 0;
-
-            for (int i = 0; i < windSide; i++)
-            {
-                dest[i] = signal[i];
-                dest[length - i - 1] = signal[length - i - 1];
-            }
             
             // Load the initial window
             // Keep first and last signal data without filtering
             do {
                 window[indexToPlace] = signal[indexToPlace];
+                weightsWindow[indexToPlace] = weights[indexToPlace];
             } while(++indexToPlace < windSize);
 
             indexToPlace = windSize - 1;
@@ -69,20 +70,24 @@ class SimpleSmoothFilter {
             // Put the new value in the window
             while(si < length - windSide) {
 
+                avg = 0;
+
                 window[indexToPlace] = signal[si + windSide];
-                indexToPlace = (indexToPlace + 1) % windSize;
+                indexToPlace = (indexToPlace + 1) % windSize;                
 
                 while(wi < windSize) {
-                    avg += window[wi++];
+                    avg += (weightsWindow[wi] * window[wi]);
+                    wi++;
                 }
 
-                avg /= windSize;
+                weightsWindow[0] = weightsWindow[windSize-1];
+                for (size_t i = 1; i < windSize; i++)
+                {
+                    weightsWindow[i] = weights[i-1];
+                }
 
                 dest[si++] = avg;
-                avg = 0;
                 wi = 0;
             }
-
         }
-    
 };
