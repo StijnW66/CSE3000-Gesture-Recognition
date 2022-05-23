@@ -8,8 +8,6 @@ import csv
 import pickle
 import numpy as np
 import json
-import pyqtgraph as pg
-from pyqtgraph import PlotWidget, plot
 
 
 class ReadLine:
@@ -171,7 +169,7 @@ class MyWindow(QMainWindow):
         plt.title('Potentiometer Reading vs. Time')
         plt.show()
 
-        with open(f"data/{gesture}/{self.chosen_hand}/data1.pickle", "ab") as file:
+        with open(f"data/{gesture}/{self.chosen_hand}/data.pickle", "ab") as file:
             pickle.dump(np.array(self.data), file)
 
         print("done ", self.count)
