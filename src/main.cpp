@@ -3,12 +3,15 @@
 
 // The name of this function is important for Arduino compatibility.
 void setup() {
-  // tensorflowSetup();
+  tensorflowSetup();
   receiverSetup();
 }
 
 // The name of this function is important for Arduino compatibility.
 void loop() {
-  // tensorflowBoilerplateLoop();
   receiverLoop();
+
+  // TODO: Remove
+  // printTensorDimensionsToSerial();
+  // printDummyDataInferenceResults();
 }
