@@ -9,6 +9,8 @@ import pickle
 import numpy as np
 import json
 
+import os
+
 
 class ReadLine:
     def __init__(self, s):
@@ -39,6 +41,8 @@ class MyWindow(QMainWindow):
         self.initUI()
         self.data = []
         self.chosen_hand = "right_hand"
+        self.diode_configuration_name = "triangle_555_606060" # shape_distances_angles
+        self.lux_level = -1
         self.count = 0
 
         self.accept_data = True
@@ -149,7 +153,7 @@ class MyWindow(QMainWindow):
         self.count += 1
         print("starting ", self.count)
         # make sure the 'COM#' is set according the Windows Device Manager
-        ser = serial.Serial('COM7', 19200, timeout=1)
+        ser = serial.Serial('COM8', 19200, timeout=1)
         reader = ReadLine(ser)
         time.sleep(2)
 
@@ -169,7 +173,14 @@ class MyWindow(QMainWindow):
         plt.title('Potentiometer Reading vs. Time')
         plt.show()
 
-        with open(f"data/{gesture}/{self.chosen_hand}/data.pickle", "ab") as file:
+        # path for current diode configuration, gesture, hand
+        path = f"src/data_collection/data/{self.diode_configuration_name}/{self.lux_level}/{gesture}/{self.chosen_hand}"
+
+        # Create directory if it doesn't exist yet
+        if (not os.path.exists(path)):
+            os.makedirs(path)
+
+        with open(path + "/data.pickle", "ab+") as file:
             pickle.dump(np.array(self.data), file)
 
         print("done ", self.count)
