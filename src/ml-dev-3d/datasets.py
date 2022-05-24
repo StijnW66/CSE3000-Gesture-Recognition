@@ -95,40 +95,9 @@ def load_data_set(data_set_name: str, frame_length: int = 1) -> DataSet:
             )
             add_data(right_hand_class_data, len(class_indices[data_set_name]), i)
 
-    def u_wave():
-        def add_data_from_file(path: str):
-            arff_data = arff.loadarff(path)
-            df = pd.DataFrame(arff_data[0])
-
-            for index, row in df.iterrows():
-                time_sequence: TimeSequence3D = []
-                time_frame: TimeFrame = []
-
-                for time_step_num in range(1, 316):
-                    time_step: TimeStep = [
-                        row['att' + str(time_step_num)],
-                        row['att' + str(315 + time_step_num)],
-                        row['att' + str(630 + time_step_num)]
-                    ]
-                    time_frame.append(time_step)
-
-                    if time_step_num % frame_length == 0:
-                        time_sequence.append(time_frame)
-                        time_frame = []
-
-                class_encoding: ClassEncoding = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-                class_encoding[int(row['target']) - 1] = 1.0
-
-                data_instance: DataInstance = DataInstance(time_sequence, class_encoding)
-                data_set.append(data_instance)
-
-        add_data_from_file('./datasets/u_wave/UWaveGestureLibraryAll_TRAIN.arff')
-        add_data_from_file('./datasets/u_wave/UWaveGestureLibraryAll_TEST.arff')
-
     data_set_dict = {
         'initial': project,
-        'extended': project,
-        'u_wave': u_wave
+        'extended': project
     }
 
     data_set_dict[data_set_name]()
