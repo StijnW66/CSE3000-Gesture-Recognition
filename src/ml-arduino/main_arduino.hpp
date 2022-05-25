@@ -8,9 +8,9 @@
 #include "prediction_enums.hpp"
 #include "../DiodeReader/parameters.h"
 
-#include "tensorflow/lite/micro/all_ops_resolver.h"
 #include "tensorflow/lite/micro/micro_error_reporter.h"
 #include "tensorflow/lite/micro/micro_interpreter.h"
+#include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
 #include "tensorflow/lite/schema/schema_generated.h"
 #include "tensorflow/lite/version.h"
 
@@ -22,14 +22,13 @@ tflite::MicroInterpreter* interpreter = nullptr;
 TfLiteTensor* input = nullptr;
 TfLiteTensor* output = nullptr;
 
-constexpr size_t kTensorArenaSize = 15U * 1024U;
+constexpr size_t kTensorArenaSize = 14U * 1024U;
 uint8_t tensor_arena[kTensorArenaSize];
 }
 
 void tensorflowSetup() {
   // Set up logging. Google style is to avoid globals or statics because of
   // lifetime uncertainty, but since this has a trivial destructor it's okay.
-  // NOLINTNEXTLINE(runtime-global-variables)
   static tflite::MicroErrorReporter micro_error_reporter;
   error_reporter = &micro_error_reporter;
 
@@ -44,8 +43,20 @@ void tensorflowSetup() {
     return;
   }
 
-  // This pulls in all the operation implementations we need.
-  static tflite::AllOpsResolver resolver;
+  // Pull in the operations needed for the 2D CNN
+  // TODO: Remove extra operations (e.g. PadV2 and AveragePool2D) depending on final model structure
+  static tflite::MicroMutableOpResolver<11> resolver;
+  resolver.AddAveragePool2D();
+  resolver.AddConv2D();
+  resolver.AddDequantize();
+  resolver.AddFullyConnected();
+  resolver.AddMaxPool2D();
+  resolver.AddPad();
+  resolver.AddPadV2();
+  resolver.AddQuantize();
+  resolver.AddRelu();
+  resolver.AddReshape();
+  resolver.AddSoftmax();
 
   // Build an interpreter to run the model with.
   static tflite::MicroInterpreter static_interpreter(
@@ -77,6 +88,7 @@ static Gesture gestureHighestProbability() {
                                   TAP_SINGLE, TAP_DOUBLE,
                                   ROTATE_CLOCKWISE, ROTATE_COUNTERCLOCKWISE};
   
+  // Note that if a fully quantized model is used, the output needs to be quantized as well
   for (Gesture current_gesture : all_gestures) {
     float current_probability = output->data.f[current_gesture];
     if (current_probability > majority_probability) {
@@ -97,7 +109,7 @@ static Gesture gestureHighestProbability() {
  */
 Gesture inferGesture2d(float signal[NUM_PDs][ML_DATA_LENGTH]) {
   // Re-order data to fit expected input shape (in effect, it's transposed)
-  // Note that if a fully quantized model is used, input and output need to be quantized as well
+  // Note that if a fully quantized model is used, the input needs to be quantized as well
   size_t current_byte = 0;
   for (size_t row = 0; row < kNumRows; row++) {
     for (size_t col = 0; col < kNumCols; col++) {
