@@ -14,7 +14,7 @@ bool comparator(Resistor const& a, Resistor const& b) {
 }
 
 // Set available resistor values.
-const Resistor resistors[] = {{{D9}, 660000}, {{D10}, 330000}, {{D11}, 150000}, {{D12}, 100000}};
+const Resistor resistors[] = {{{D12}, 660000}, {{D11}, 330000}, {{D10}, 100000}, {{D9}, 22000}};
 
 // Set diode to finetune
 const uint8_t diode = A0;
@@ -73,7 +73,9 @@ std::vector<Resistor> createPowerSet(const Resistor* set, int size) {
 
 // Parameters for diode calibration. 
 const int window = 10;
+const int delay_period = 10;
 
+// TODO: remove recursion and use iteration
 void calibrate_diode(uint8_t resistorIndex, std::vector<Resistor> powerSet, int powerSetSize) {
 
   // Check if index exists.
@@ -82,48 +84,53 @@ void calibrate_diode(uint8_t resistorIndex, std::vector<Resistor> powerSet, int 
     return;
   }
 
-  //Serial.print("Value: ");
-  //Serial.println(powerSet[resistorIndex].value);
-  //for(int i = 0; i < powerSet[resistorIndex].pins.size(); i++) {
-  //  Serial.print(powerSet[resistorIndex].pins.at(i));
-  //  Serial.print(", ");
-  //}
-  //Serial.println();
-  // Set new resistor.
   set_resistor(powerSet[resistorIndex].pins);
+  // allow the capacitors to lose charge?
+  delay(500);
 
-  // Read frames in a window
-  float sum = 0.0f;
-  for(int i = 0; i < window; i++) {
-    sum += analogRead(diode);
-    delay(100);
+  int read_sum = 0;
+  for (int i = 0; i < window; i++) {
+    read_sum += analogRead(diode);
+    delay(delay_period);
   }
 
-  float reading = sum / window;
-
-  if(true) {
-    // Not optimally configured, try again with new value.
-    calibrate_diode(resistorIndex + 1, powerSet, powerSetSize);
+  
+  if ((read_sum / window) > 750) {
+    // Reading too large, try next
+    calibrate_diode(resistorIndex+1, powerSet, powerSetSize);
+  } else if ((read_sum / window) < 300) {
+    // Reading too small, revert to previous (even though that was too large). Check that previous resistorIndex exists
+    if (resistorIndex != 0) {
+      set_resistor(powerSet[resistorIndex-1].pins);
+      digitalWrite(24, LOW);
+    } else {
+      digitalWrite(22, LOW);
+    }
   } else {
-    // Configured correctly. Turn on led
-    //set_resistor(powerSet[resistorIndex].pins);
+    // Appropriate reading achieved
     digitalWrite(23, LOW);
-    return;
   }
+
+
 
 }
 
 // Function that calibrates the diodes.
 void calibrate_diode_setup() {
+  // Allow the capacitor to charge up i guess
+  set_resistor({resistors[0].pins.at(0), resistors[1].pins.at(0), resistors[2].pins.at(0), resistors[3].pins.at(0)});
+  delay(100);
+
 
   // Create set of appropriate size
   const unsigned int size = pow(2, sizeof(resistors)/sizeof(Resistor));
   std::vector<Resistor> powerSet = createPowerSet(resistors, size);
 
   // Erase the empty set
-  powerSet.erase(powerSet.begin());
+  //powerSet.erase(powerSet.begin());
 
   // Sort the powerset on decreasing resistive values.
   std::sort(powerSet.begin(), powerSet.end(), &comparator);
-  calibrate_diode(0, powerSet, size-1);
+  calibrate_diode(0, powerSet, size);
+  //calibrate_diode(0, {Resistor(resistors[0]), Resistor(resistors[1]), Resistor(resistors[2]), Resistor(resistors[3])}, 4);
 }
