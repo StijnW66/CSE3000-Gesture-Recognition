@@ -6,20 +6,18 @@
 rtos::Thread calibration_thread;
 
 void setup() {
-  Serial.begin(9600);
-  while(!Serial);
+  // Initialise the serial port
+  Serial.begin(19200);
+  Serial1.begin(19200);
+  pinMode(A0, INPUT);
+  pinMode(A1, INPUT);
+  pinMode(A2, INPUT);
+  while(!Serial1);
   calibration_thread.start(calibrate_diode_setup); // Should not be done multithreaded but is good for keeping the visualization.
 }
 
 void loop() {
-  int r0 = analogRead(A0);
-  int r1 = analogRead(A1);
-  int r2 = analogRead(A2);
-
-  Serial.print(r0);
-  Serial.print(", ");
-  Serial.print(r1);
-  Serial.print(", ");
-  Serial.println(r2);
-  delay(10);
+  Serial.println((String)analogRead(A0) + "  " + analogRead(A1) + "  " + analogRead(A2));
+  Serial1.println((String)analogRead(A0) + "  " + analogRead(A1) + "  " + analogRead(A2));
+  delay(50);
 }
