@@ -6,6 +6,22 @@ ser = serial.Serial('/dev/ttyACM0')
 
 print(ser.name)
 
+def readData1():
+    data1 = []
+    while ser.readline() != b"Start\r\n":
+        pass
+
+    while True:
+        line = ser.readline()
+        print(line)
+        if (line == b"Done\r\n"):
+            break
+        else:
+            d = list(map(float, line.decode('ascii').strip().split(" ")))
+            data1.append(d[0])
+    
+    return data1
+
 def readData():
     data1 = []
     data2 = []
@@ -26,7 +42,7 @@ def readData():
     
     return (data1, data2, data3)
 
-def plotData(ax, data1, data2, data3, title):
+def plotData(ax, data1, data2, data3, title, xlabel, ylabel):
     l = len(data1)
     xs = list(np.arange(0, l))
 
@@ -35,22 +51,33 @@ def plotData(ax, data1, data2, data3, title):
     ax.plot(xs, data3, c="g", label="up")
     ax.legend()
     ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+
+def plotData1(ax, data1, title, xlabel, ylabel):
+    l = len(data1)
+    xs = list(np.arange(0, l))
+
+    ax.plot(xs, data1, c="r")
+    ax.legend()
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+
 
 while True:
     
-    initData1, initData2, initData3 = readData()
-    smothData1, smothData2, smothData3 = readData()
-    normData1, normData2, normData3 = readData()
-    streData1, streData2, streData3 = readData()
+    initData1 = readData1()
+    streData1 = readData1()
     
     # plot
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2,2)
+    fig, ((ax1, ax2)) = plt.subplots(1,2)
     fig.suptitle("PhotoDiode Data")
 
-    plotData(ax1, initData1, initData2, initData3, "Raw Data")
-    plotData(ax2, smothData1, smothData2, smothData3, "Filtered Data")
-    plotData(ax3, normData1, normData2, normData3, "Normalised Data")
-    plotData(ax4, streData1, streData2, streData3, "Time-Stretched Data")
+    plotData1(ax1, initData1, "Raw Data","Time", "Photodiode Reading")
+    # plotData(ax2, smothData1, smothData2, smothData3, "Filtered Data")
+    # plotData(ax3, normData1, normData2, normData3, "Normalised Data")
+    plotData1(ax2, streData1, "Receiver Output Data", "Time", "Normalised Photodiode Reading")
 
     plt.show()
 

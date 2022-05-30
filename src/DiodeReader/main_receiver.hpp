@@ -9,6 +9,8 @@
 #include "PreProcessingPipeline.h"
 #include "util.h"
 
+#include <arduinoFFT.h>
+
 
 int count = 0;
 bool detectionWindowFull = false;
@@ -66,7 +68,7 @@ void receiverLoopMain() {
         
         for (size_t i = 0; i < NUM_PDs; i++)
         {
-            edgeDetector[i].setThreshold((QuickMedian<uint16_t>::GetMedian(thresholdAdjustmentBuffer[i], THRESHOLD_ADJ_BUFFER_LENGTH) * 9) / 10);
+            edgeDetector[i].setThreshold(QuickMedian<uint16_t>::GetMedian(thresholdAdjustmentBuffer[i], THRESHOLD_ADJ_BUFFER_LENGTH) * DETECTION_THRESHOLD_COEFF);
             taBuffer[i] = thresholdAdjustmentBuffer[i];
         }
     }
@@ -124,7 +126,7 @@ void receiverLoopMain() {
                 int index = -1;
                 while(++index < gestureSignalLength) {
                     for (size_t i = 0; i < NUM_PDs; i++)
-                        photodiodeData[i][index] = max(edgeDetector[i].getThreshold() - photodiodeData[i][index], 0);
+                        photodiodeData[i][index] = min(edgeDetector[i].getThreshold() * CUTT_OFF_THRESHOLD_COEFF, photodiodeData[i][index]);
                 }
 
                 bool trimmed = false;
@@ -134,7 +136,7 @@ void receiverLoopMain() {
                 while(index-- >= 0 && trimCount++ < DETECTION_END_WINDOW_LENGTH * DETECTION_END_WINDOW_TRIM) {
                     bool zero = true;
                     for (size_t i = 0; i < NUM_PDs; i++)
-                        zero = zero && (photodiodeData[i][index] == 0);
+                        zero = zero && (abs(photodiodeData[i][index] - (edgeDetector[i].getThreshold() * CUTT_OFF_THRESHOLD_COEFF)) <= 2);
                     
                     if (zero) {
                         trimmed = true;
@@ -144,14 +146,40 @@ void receiverLoopMain() {
 
                 if(trimmed) gestureSignalLength++;
 
-                sendSignal(photodiodeData, gestureSignalLength);
-// ----------------------------------------
+// ------------------------------------------
+//          Compute FFT
 
-                // Run the pipeline
-                pipeline.RunPipeline(photodiodeData, gestureSignalLength);
-                
-                break;
+            SimpleSignalStretcher st128;
+            double sFFT[128];
+            double imag[128];
+
+            st128.StretchSignal(photodiodeData[0], gestureSignalLength, sFFT, 128);
+            
+            for (size_t i = 0; i < 128; i++)
+            {
+                imag[i] = 0;
             }
+
+            sendSignal1<double, 128>(sFFT, 128);
+
+            arduinoFFT fft(sFFT, imag, 128, 100);
+            fft.Compute(FFT_FORWARD);
+            
+            int cutOff = 25;
+
+            for (int i = 0; i < 64 - 25; i++) {
+                sFFT[64 - i] = imag[64 - i] = 0;
+                sFFT[64 + i] = imag[64 + i] = 0;
+            }
+
+            fft.Compute(FFT_REVERSE);
+
+            sendSignal1<double, 128>(sFFT, 128);
+
+            break;
+
+            }
+
         }
 
         // Reset the buffer pointers for PD gesture data collection
@@ -167,7 +195,7 @@ void receiverLoopMain() {
         // Gesture took too long -> Light Intensity Change -> Threshold Recalculation
         if(!endDetected)
             for (size_t i = 0; i < NUM_PDs; i++)
-                edgeDetector[i].setThreshold((QuickMedian<uint16_t>::GetMedian(photodiodeData[i], READING_WINDOW_LENGTH) * 4) / 5);
+                edgeDetector[i].setThreshold(QuickMedian<uint16_t>::GetMedian(photodiodeData[i], READING_WINDOW_LENGTH) * DETECTION_THRESHOLD_COEFF);
 
         timer.restartTimer(timID);
     }
