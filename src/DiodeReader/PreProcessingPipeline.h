@@ -26,9 +26,10 @@ private:
     SimpleSmoothFilter smf;
     SimpleSignalStretcher sstretch;
     SimpleSignalFlipper sFlipper;
+    SimpleFFTCutOffFilter fftFilter[NUM_PDs];
 
 public:
-    void RunPipeline(uint16_t rawData[NUM_PDs][GESTURE_BUFFER_LENGTH], int gestureSignalLength)
+    void RunPipeline(uint16_t rawData[NUM_PDs][GESTURE_BUFFER_LENGTH], int gestureSignalLength, uint16_t thresholds[NUM_PDs])
     {
         Serial.println("FFT Filtering");
 
@@ -40,9 +41,18 @@ public:
             fftFilter[i].MoveDataToBufferF(photodiodeDataFFTFiltered[i]);
         }
 
-        sendSignal(photodiodeDataFFTFiltered, FFT_SIGNAL_LENGTH);
-
         gestureSignalLength = FFT_SIGNAL_LENGTH;
+
+        // Cut off using the thresholds
+        for (size_t di = 0; di < NUM_PDs; di++)
+        {
+            for (size_t i = 0; i < gestureSignalLength; i++)
+            {
+                photodiodeDataFFTFiltered[di][i] = max(0, thresholds[di] - photodiodeDataFFTFiltered[di][i]);
+            }
+        }
+        
+        sendSignal(photodiodeDataFFTFiltered, FFT_SIGNAL_LENGTH);
 
         // ----------------------------------------
 
@@ -51,7 +61,7 @@ public:
         // Smooth using an averaging filter
         std::vector<float> ws = {0.25f, 0.5f, 0.25f};
         for (size_t i = 0; i < NUM_PDs; i++)
-            smf.SmoothSignal(rawData[i], normPhotodiodeData[i], gestureSignalLength, 1, ws.data());     
+            smf.SmoothSignal(photodiodeDataFFTFiltered[i], normPhotodiodeData[i], gestureSignalLength, 1, ws.data());     
 
         sendSignal(normPhotodiodeData, gestureSignalLength);
 

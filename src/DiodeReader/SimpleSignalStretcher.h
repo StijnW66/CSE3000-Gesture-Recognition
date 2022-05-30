@@ -1,3 +1,6 @@
+#ifndef SS
+#define SS
+
 #include<inttypes.h>
 
 class SimpleSignalStretcher {
@@ -41,3 +44,5 @@ class SimpleSignalStretcher {
 
         }
 };
+
+#endif

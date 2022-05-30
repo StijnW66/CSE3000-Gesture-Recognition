@@ -64,13 +64,13 @@ while True:
         data[i] = readData()
     
     # plot
-    fig, axes = plt.subplots(3,2)
+    fig, ax = plt.subplots(3,2)
     fig.suptitle("PhotoDiode Data")
 
     plotData(ax[0][0], data[0][0], data[0][1], data[0][2], "Raw"            ,"Time", "Photodiode Reading")
     plotData(ax[0][1], data[1][0], data[1][1], data[1][2], "FFT Filtered"   ,"Time", "Photodiode Reading")
     plotData(ax[1][0], data[2][0], data[2][1], data[2][2], "LPF Filtered"   ,"Time", "Photodiode Reading")
-    plotData(ax[2][1], data[3][0], data[3][1], data[3][2], "Normalised"     ,"Time", "Photodiode Reading")
+    plotData(ax[1][1], data[3][0], data[3][1], data[3][2], "Normalised"     ,"Time", "Photodiode Reading")
     plotData(ax[2][0], data[4][0], data[4][1], data[4][2], "Stretched"      ,"Time", "Photodiode Reading")
 
     plt.show()

@@ -47,7 +47,7 @@ class SimpleFFTCutOffFilter {
             }
         }
 
-        void MoveDataToBufferF(uint16_t float[FFT_SIGNAL_LENGTH]) {
+        void MoveDataToBufferF(float signal[FFT_SIGNAL_LENGTH]) {
             for (size_t i = 0; i < FFT_SIGNAL_LENGTH; i++)
             {
                 signal[i] = round(sFFT[i]);

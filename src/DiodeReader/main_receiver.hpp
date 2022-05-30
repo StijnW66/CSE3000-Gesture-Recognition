@@ -147,10 +147,18 @@ void receiverLoopMain() {
 
                 if(trimmed) gestureSignalLength++;
 
+                sendSignal(photodiodeData, gestureSignalLength);
+
 // ------------------------------------------
                 // Run the pipeline
 
-                pipeline.RunPipeline(photodiodeData, gestureSignalLength);
+                uint16_t thresholds[NUM_PDs];
+                for (size_t i = 0; i < NUM_PDs; i++)
+                {
+                    thresholds[i] = edgeDetector[i].getThreshold() * CUTT_OFF_THRESHOLD_COEFF;
+                }
+
+                pipeline.RunPipeline(photodiodeData, gestureSignalLength, thresholds);
 
                 break;
             }
