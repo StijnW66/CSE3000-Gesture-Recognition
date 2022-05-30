@@ -15,6 +15,7 @@
 #define GESTURE_MIN_TIME_MS             100
 
 #define READING_WINDOW_LENGTH   200
+#define FFT_SIGNAL_LENGTH         128
 #define ML_DATA_LENGTH 100
 
 #define NUM_PDs 3
