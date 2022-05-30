@@ -6,6 +6,27 @@ ser = serial.Serial('/dev/ttyACM0')
 
 print(ser.name)
 
+NUM_PLOTS   = 5
+NUM_SIGNALS = 3
+
+def readData():
+    data = [[] for _ in range(NUM_SIGNALS)]
+    while ser.readline() != b"Start\r\n":
+        pass
+
+    while True:
+        line = ser.readline()
+        print(line)
+        if (line == b"Done\r\n"):
+            break
+        else:
+            d = list(map(float, line.decode('ascii').strip().split(" ")))
+
+            for i, x in enumerate(d):
+                data[i].append(x)
+    
+    return data
+
 def readData1():
     data1 = []
     while ser.readline() != b"Start\r\n":
@@ -22,26 +43,6 @@ def readData1():
     
     return data1
 
-def readData():
-    data1 = []
-    data2 = []
-    data3 = []
-    while ser.readline() != b"Start\r\n":
-        pass
-
-    while True:
-        line = ser.readline()
-        print(line)
-        if (line == b"Done\r\n"):
-            break
-        else:
-            d = list(map(float, line.decode('ascii').strip().split(" ")))
-            data1.append(d[0])
-            data2.append(d[1])
-            data3.append(d[2])
-    
-    return (data1, data2, data3)
-
 def plotData(ax, data1, data2, data3, title, xlabel, ylabel):
     l = len(data1)
     xs = list(np.arange(0, l))
@@ -54,30 +55,23 @@ def plotData(ax, data1, data2, data3, title, xlabel, ylabel):
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
 
-def plotData1(ax, data1, title, xlabel, ylabel):
-    l = len(data1)
-    xs = list(np.arange(0, l))
-
-    ax.plot(xs, data1, c="r")
-    ax.legend()
-    ax.set_title(title)
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-
-
 while True:
-    
-    initData1 = readData1()
-    streData1 = readData1()
+
+    # Read the signals
+    data = [[[] for _ in range(NUM_SIGNALS)] for _ in range(NUM_PLOTS)]
+
+    for i in range(NUM_PLOTS):
+        data[i] = readData()
     
     # plot
-    fig, ((ax1, ax2)) = plt.subplots(1,2)
+    fig, axes = plt.subplots(3,2)
     fig.suptitle("PhotoDiode Data")
 
-    plotData1(ax1, initData1, "Raw Data","Time", "Photodiode Reading")
-    # plotData(ax2, smothData1, smothData2, smothData3, "Filtered Data")
-    # plotData(ax3, normData1, normData2, normData3, "Normalised Data")
-    plotData1(ax2, streData1, "Receiver Output Data", "Time", "Normalised Photodiode Reading")
+    plotData(ax[0][0], data[0][0], data[0][1], data[0][2], "Raw"            ,"Time", "Photodiode Reading")
+    plotData(ax[0][1], data[1][0], data[1][1], data[1][2], "FFT Filtered"   ,"Time", "Photodiode Reading")
+    plotData(ax[1][0], data[2][0], data[2][1], data[2][2], "LPF Filtered"   ,"Time", "Photodiode Reading")
+    plotData(ax[2][1], data[3][0], data[3][1], data[3][2], "Normalised"     ,"Time", "Photodiode Reading")
+    plotData(ax[2][0], data[4][0], data[4][1], data[4][2], "Stretched"      ,"Time", "Photodiode Reading")
 
     plt.show()
 
