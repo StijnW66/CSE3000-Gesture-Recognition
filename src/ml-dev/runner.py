@@ -1,4 +1,5 @@
 from typing import List, Tuple
+from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import KFold, train_test_split
 from sys import getsizeof
 from tf_lite_conversion import _convert_with_quantization
@@ -46,7 +47,7 @@ def train_and_evaluate_tf(model: tf.keras.Model,
 
 
 def kfold_cross_validation(model: tf.keras.Model, features: np.ndarray, labels: np.ndarray,
-                           num_folds: int = 5, quantize: bool = False) -> Tuple[List[float], List[float]]:
+                           num_folds: int = 5, quantize: bool = False) -> Tuple[List[float], List[float], List[np.ndarray]]:
     """
     Perform k-fold cross validation.
 
@@ -60,10 +61,12 @@ def kfold_cross_validation(model: tf.keras.Model, features: np.ndarray, labels: 
     Returns:
         acc_per_fold: A list with the testing accuracy computed for each fold
         loss_per_fold: A list with the testing loss computed for each fold
+        confusion_per_fold: A list with the confusion matrix computed for each fold
     """
     fold_num = 1
     acc_per_fold = []
     loss_per_fold = []
+    confusion_per_fold = []
     kfold = KFold(num_folds, shuffle=True)
     if quantize:
         model = tfmot.quantization.keras.quantize_model(model)
@@ -79,16 +82,30 @@ def kfold_cross_validation(model: tf.keras.Model, features: np.ndarray, labels: 
 
         # Generate evaluation metrics
         scores = model.evaluate(features[test], labels[test], verbose=2)
+        predictions = np.argmax(model.predict(features[test]), axis=1)
         acc_per_fold.append(scores[1] * 100)
         loss_per_fold.append(scores[0])
+        confusion_per_fold.append(confusion_matrix(labels[test], predictions))
+
         fold_num += 1
 
-    return acc_per_fold, loss_per_fold
+    return acc_per_fold, loss_per_fold, confusion_per_fold
 
 
 def compare_models(models: List[tf.keras.Model], model_names: List[str],
                    features: np.ndarray, labels: np.ndarray, num_folds: int = 5,
                    quantize: bool = False):
+    """
+    Perform k-fold cross validation on a number of models and print evaluation results
+
+    Args:
+        models: Unfitted Keras models        
+        model_names: Name of each of the given models
+        features: Features to use for k-fold cross validation
+        labels: Labels for corresponding features
+        num_folds: Number of folds to use for k-fold cross validation (default: 5)
+        quantize: Quantize models and utilise quantization-aware training (default: False)
+    """
     results = [kfold_cross_validation(model, features, labels, num_folds, quantize) for model in models]
     accuracies = [acc_loss_pair[0] for acc_loss_pair in results]
     losses = [acc_loss_pair[1] for acc_loss_pair in results]
@@ -111,26 +128,30 @@ def train_uwave():
 
 def train_initial_raw_dataset():
     print("========== INITIAL RAW DATASET ==========")
-    features, labels = data_processing.load_and_combine_initial_raw_data()
+    features, labels = data_processing.load_and_combine_raw_data()
     x_train, x_test, y_train, y_test = train_test_split(features,
                                                         labels,
                                                         test_size=0.25,
                                                         random_state=constants.RANDOM_SEED)
 
-    running_model = models.slam_cnn_padding(features[0].shape, constants.NUM_CLASSES_INITIAL_RAW_DATA)
+    running_model = models.slam_cnn_padding_pyramid_lite(features[0].shape, constants.NUM_CLASSES_RAW_DATA)
     compile_model(running_model)
     train_and_evaluate_np(running_model, x_train, x_test, y_train, y_test, plot_metrics=True)
 
 # ===== END CONVENIENCE METHODS =====
 
 if __name__ == "__main__":
-    features, labels = data_processing.load_and_combine_initial_raw_data()
-    model_list = [
-        models.slam_cnn_padding(features[0].shape, constants.NUM_CLASSES_INITIAL_RAW_DATA),
-        models.slam_cnn_padding_lite(features[0].shape, constants.NUM_CLASSES_INITIAL_RAW_DATA),
-        models.slam_cnn_padding_pyramid(features[0].shape, constants.NUM_CLASSES_INITIAL_RAW_DATA),
-        models.slam_cnn_padding_pyramid_lite(features[0].shape, constants.NUM_CLASSES_INITIAL_RAW_DATA)]
-    model_names = [
-        "SLAM CNN Padding", "SLAM CNN Padding Lite",
-        "SLAM CNN Padding Pyramid", "SLAM CNN Padding Pyramid Lite"]
-    compare_models(model_list, model_names, features, labels, num_folds=10)
+    features, labels = data_processing.load_and_combine_raw_data()
+    acc_per_fold, loss_per_fold, confusion_per_fold = kfold_cross_validation(
+        models.slam_cnn_padding_pyramid_lite(features[0].shape, constants.NUM_CLASSES_RAW_DATA),
+        features, labels, 5, False)
+    results_analysis.print_kfold_results(acc_per_fold, loss_per_fold, confusion_per_fold)
+    # model_list = [
+    #     models.slam_cnn_padding(features[0].shape, constants.NUM_CLASSES_INITIAL_RAW_DATA),
+    #     models.slam_cnn_padding_lite(features[0].shape, constants.NUM_CLASSES_INITIAL_RAW_DATA),
+    #     models.slam_cnn_padding_pyramid(features[0].shape, constants.NUM_CLASSES_INITIAL_RAW_DATA),
+    #     models.slam_cnn_padding_pyramid_lite(features[0].shape, constants.NUM_CLASSES_INITIAL_RAW_DATA)]
+    # model_names = [
+    #     "SLAM CNN Padding", "SLAM CNN Padding Lite",
+    #     "SLAM CNN Padding Pyramid", "SLAM CNN Padding Pyramid Lite"]
+    # compare_models(model_list, model_names, features, labels, num_folds=5)

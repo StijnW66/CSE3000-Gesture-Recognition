@@ -63,7 +63,7 @@ def keras_mnist_example(input_shape: Tuple, num_classes: int) -> tf.keras.Model:
         A trimmed version of the MNIST example CNN
     """
     return tf.keras.models.Sequential([
-        tf.keras.Input(shape=input_shape, name="sensor image"),
+        tf.keras.Input(shape=input_shape, name="sensor_image"),
         tf.keras.layers.Conv2D(32, kernel_size=(3, 3), activation="relu"),
         tf.keras.layers.MaxPooling2D(pool_size=(3, 1)),
         tf.keras.layers.Flatten(),
@@ -74,7 +74,7 @@ def keras_mnist_example(input_shape: Tuple, num_classes: int) -> tf.keras.Model:
 
 def slam_cnn(input_shape: Tuple, num_classes: int) -> tf.keras.Model:
     return tf.keras.models.Sequential([
-        tf.keras.Input(shape=input_shape, name="sensor image"),
+        tf.keras.Input(shape=input_shape, name="sensor_image"),
         tf.keras.layers.Conv2D(32, kernel_size=(2, 2), strides=(1, 1), activation="relu"),
         tf.keras.layers.Conv2D(32, kernel_size=(2, 2), activation="relu"),
         tf.keras.layers.MaxPooling2D(pool_size=(3, 1)),
@@ -87,7 +87,7 @@ def slam_cnn(input_shape: Tuple, num_classes: int) -> tf.keras.Model:
 
 def slam_cnn_padding(input_shape: Tuple, num_classes: int) -> tf.keras.Model:
     return tf.keras.models.Sequential([
-        tf.keras.Input(shape=input_shape, name="sensor image"),
+        tf.keras.Input(shape=input_shape, name="sensor_image"),
         tf.keras.layers.ZeroPadding2D(padding=(0, 2)),
         tf.keras.layers.Conv2D(32, kernel_size=(3, 3), strides=(1, 1), activation="relu"),
         tf.keras.layers.Conv2D(16, kernel_size=(2, 2), strides=(1, 1), activation="relu"),
@@ -102,7 +102,7 @@ def slam_cnn_padding(input_shape: Tuple, num_classes: int) -> tf.keras.Model:
 
 def slam_cnn_padding_lite(input_shape: Tuple, num_classes: int) -> tf.keras.Model:
     return tf.keras.models.Sequential([
-        tf.keras.Input(shape=input_shape, name="sensor image"),
+        tf.keras.Input(shape=input_shape, name="sensor_image"),
         tf.keras.layers.ZeroPadding2D(padding=(0, 2)),
         tf.keras.layers.Conv2D(16, kernel_size=(3, 3), strides=(1, 1), activation="relu"),
         tf.keras.layers.Conv2D(16, kernel_size=(2, 2), strides=(1, 1), activation="relu"),
@@ -117,7 +117,7 @@ def slam_cnn_padding_lite(input_shape: Tuple, num_classes: int) -> tf.keras.Mode
 
 def slam_cnn_padding_pyramid(input_shape: Tuple, num_classes: int) -> tf.keras.Model:
     return tf.keras.models.Sequential([
-        tf.keras.Input(shape=input_shape, name="sensor image"),
+        tf.keras.Input(shape=input_shape, name="sensor_image"),
         tf.keras.layers.ZeroPadding2D(padding=(0, 2)),
         tf.keras.layers.Conv2D(8, kernel_size=(3, 3), strides=(1, 1), activation="relu"),
         tf.keras.layers.Conv2D(16, kernel_size=(2, 2), strides=(1, 1), activation="relu"),
@@ -132,7 +132,7 @@ def slam_cnn_padding_pyramid(input_shape: Tuple, num_classes: int) -> tf.keras.M
 
 def slam_cnn_padding_pyramid_lite(input_shape: Tuple, num_classes: int) -> tf.keras.Model:
     return tf.keras.models.Sequential([
-        tf.keras.Input(shape=input_shape, name="sensor image"),
+        tf.keras.Input(shape=input_shape, name="sensor_image"),
         tf.keras.layers.ZeroPadding2D(padding=(0, 2)),
         tf.keras.layers.Conv2D(8, kernel_size=(3, 3), strides=(1, 1), activation="relu"),
         tf.keras.layers.Conv2D(16, kernel_size=(2, 2), strides=(1, 1), activation="relu"),

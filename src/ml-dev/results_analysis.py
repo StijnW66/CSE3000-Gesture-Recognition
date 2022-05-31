@@ -1,5 +1,3 @@
-from unittest import result
-from requests import head
 from rich.table import Table
 from typing import List
 import constants
@@ -37,13 +35,16 @@ def plot_accuracies(history: tf.keras.callbacks.History):
     plt.show()
 
 
-def print_kfold_results(acc_per_fold: List[float], loss_per_fold: List[float]):
+def print_kfold_results(acc_per_fold: List[float],
+                        loss_per_fold: List[float],
+                        confusion_per_fold: List[np.ndarray]):
     """
     Print the results of k-fold cross validation to the console
 
     Args:
         acc_per_fold: A list with the testing accuracy computed for each fold
         loss_per_fold: A list with the testing loss computed for each fold
+        confusion_per_fold: A list with the confusion matrix computed for each fold
     """
     num_folds = len(acc_per_fold)
     
@@ -51,16 +52,28 @@ def print_kfold_results(acc_per_fold: List[float], loss_per_fold: List[float]):
     constants.CONSOLE.print('Score per fold:', style="bold deep_pink4")
     for i in range(0, num_folds):
         print(f'> Fold {i+1} - Loss: {loss_per_fold[i]:.3f} - Accuracy: {acc_per_fold[i]:.3f}%')
+        print(confusion_per_fold[i])
     print()
-    constants.CONSOLE.print("Average scores for all folds:", style="bold deep_pink4")
-    print(f'> Accuracy: {np.mean(acc_per_fold):.3f}% (+- {np.std(acc_per_fold):.3f}%)')
-    print(f'> Loss: {np.mean(loss_per_fold):.3f}')
+    with np.printoptions(precision=1):
+        constants.CONSOLE.print("Average scores for all folds:", style="bold deep_pink4")
+        print(f'> Accuracy: {np.mean(acc_per_fold):.3f}% (+- {np.std(acc_per_fold):.3f}%)')
+        print(f'> Loss: {np.mean(loss_per_fold):.3f}')
+        print(np.mean(confusion_per_fold, axis=0))
 
 
 def print_multiple_kfold_results(model_names: List[str], 
                                  accuracies: List[List[float]],
                                  losses: List[List[float]],
                                  quantized_sizes: List[int]):
+    """
+    Print the results of k-fold cross validation across multiple models to the console
+    
+    Args:
+        model_names: Names of each of the models
+        accuracies: Testing accuracies per fold per model
+        losses: Testing losses per fold per model
+        quantized_sizes: Size of each model post quantized (in bytes)
+    """
     num_folds = len(accuracies[0])
     
     results = Table(title=f"{num_folds}-fold Comparison Results",

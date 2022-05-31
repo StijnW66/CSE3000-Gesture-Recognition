@@ -1,5 +1,6 @@
 from typing import Tuple
 from sklearn.metrics import accuracy_score
+import constants
 import data_processing
 import models
 import numpy as np
@@ -129,12 +130,12 @@ def evaluate_tflite_model(file_path: str, model: tf.keras.Model,
 
 
 if __name__ == "__main__":
-    features, labels = data_processing.load_and_combine_initial_raw_data()
+    features, labels = data_processing.load_and_combine_raw_data()
     # features, labels = data_processing.preprocess_input(features, labels)
     train_dataset, test_dataset = data_processing.split_to_tf_datasets(features, labels)
-    running_model = models.slam_cnn_padding_pyramid(
+    running_model = models.slam_cnn_padding_pyramid_lite(
         features[0].shape,
-        data_processing.NUM_CLASSES_INITIAL_RAW_DATA)
+        constants.NUM_CLASSES_RAW_DATA)
 
     from runner import compile_model, train_and_evaluate_tf
     compile_model(running_model)
@@ -142,23 +143,23 @@ if __name__ == "__main__":
 
     _convert_no_optimisations(running_model)
     _convert_with_quantization(running_model, features)
-    _convert_with_quantization_aware_training(running_model, train_dataset, test_dataset)
+    # _convert_with_quantization_aware_training(running_model, train_dataset, test_dataset)
 
     evaluate_tflite_model(
         "model_no_optimisations.tflite",
         running_model,
         test_dataset,
-        data_processing.NUM_CLASSES_INITIAL_RAW_DATA,
+        constants.NUM_CLASSES_RAW_DATA,
         features[0].shape)
     evaluate_tflite_model(
         "model_quantization.tflite",
         running_model,
         test_dataset,
-        data_processing.NUM_CLASSES_INITIAL_RAW_DATA,
+        constants.NUM_CLASSES_RAW_DATA,
         features[0].shape)
-    evaluate_tflite_model(
-        "model_quantization_aware_training.tflite",
-        running_model,
-        test_dataset,
-        data_processing.NUM_CLASSES_INITIAL_RAW_DATA,
-        features[0].shape)
+    # evaluate_tflite_model(
+    #     "model_quantization_aware_training.tflite",
+    #     running_model,
+    #     test_dataset,
+    #     constants.NUM_CLASSES_INITIAL_RAW_DATA,
+    #     features[0].shape)
