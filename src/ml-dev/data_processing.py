@@ -26,9 +26,32 @@ def _load_all_pickled_data(file_path) -> List:
             except EOFError:
                 return data
 
-def load_and_combine_initial_raw_data() -> Tuple[np.ndarray, np.ndarray]:
+
+def _load_and_combine_all_candidates(data_path: str) -> np.ndarray:
     """
-    Load the initial raw dataset, combining the left and right hand results for each class.
+    Load and combine the data of a particular gesture from all candidates.
+
+    Args:
+        data_path: Path to the folder containing the .pickle files of a particular gestures
+        as performed with a particular hand
+
+    Returns:
+        Numpy array where each entry is an (m x 3 x 1) 'image'
+    """
+    to_process = ["candidate_1.pickle", "candidate_2.pickle", "candidate_3.pickle", "candidate_4.pickle"]
+    combined_data = np.empty((0, 100, 3), dtype=np.uint16) # TODO: Make this more programmatic instead of hardcording data sizes
+    for candidate in listdir(data_path):
+        if candidate in to_process:
+            file_name = path.join(data_path, candidate)
+            candidate_data = _load_all_pickled_data(file_name)
+            combined_data = np.append(combined_data, candidate_data, axis=0)
+    return combined_data
+
+
+def load_and_combine_raw_data() -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Load the raw dataset, combining the left and right hand results across all
+    candidates for each class.
 
     Returns:
         features: Numpy array where each entry is an (m x 3 x 1) 'image'
@@ -41,10 +64,10 @@ def load_and_combine_initial_raw_data() -> Tuple[np.ndarray, np.ndarray]:
     raw_data_path = path.join("data", "initial_raw_data")
     for gesture_name in listdir(raw_data_path):
         # Load and combine left and right hand data
-        left_hand_data_path = path.join(raw_data_path, gesture_name, "left_hand", "data.pickle")
-        left_hand_data = _load_all_pickled_data(left_hand_data_path)
-        right_hand_data_path = path.join(raw_data_path, gesture_name, "right_hand", "data.pickle")
-        right_hand_data = _load_all_pickled_data(right_hand_data_path)
+        left_hand_data_path = path.join(raw_data_path, gesture_name, "left_hand")
+        left_hand_data = _load_and_combine_all_candidates(left_hand_data_path)
+        right_hand_data_path = path.join(raw_data_path, gesture_name, "right_hand")
+        right_hand_data = _load_and_combine_all_candidates(right_hand_data_path)
         combined_data = np.append(left_hand_data, right_hand_data, axis=0)
 
         # Extend features list and create corresponding label list entries
@@ -128,14 +151,39 @@ def split_to_tf_datasets(features: np.ndarray, labels: np.ndarray) -> Tuple[tf.d
     return train_dataset, test_dataset
 
 
-if __name__ == "__main__":
-    print("===== UWAVE DATA =====")
-    features, labels = load_and_combine_uwave()
-    features, labels = preprocess_input(features, labels)
-    print("Feature data shape:", features.shape)
-    print("Label data shape:", labels.shape)
+def reshape_to_sensor_output(features: np.ndarray) -> List:
+    """
+    Reshape the array of features to emulate the tranposed output
+    of the signal processing pipeline
 
+    Args:
+        features: Numpy array where each entry is an (m x 3 x 1) 'image'
+
+    Returns:
+        List where each entry is a (3 x m x 1) 'image'
+    """
+    reshaped_output = []
+    for image in features:
+        image = np.squeeze(image)
+        reshaped_output.append(np.array([image[:, 0], image[:, 1], image[:, 2]]))
+    return reshaped_output
+
+
+def print_feature_label_pair(features: List, labels: np.ndarray, idx: int):
+    print(f"=== FEATURE LIST PAIR AT INDEX {idx} ===")
+    print("Feature:")
+    print(repr(np.array(features[idx], dtype=np.float32)))
+    print("Label:")
+    print(labels[idx])
+
+
+if __name__ == "__main__":
     print("===== INITIAL RAW DATASET =====")
-    features, labels = load_and_combine_initial_raw_data()
+    features, labels = load_and_combine_raw_data()
     print("Feature data shape: ", features.shape)
     print("Labels data shape: ", labels.shape)
+
+    features = reshape_to_sensor_output(features)
+    print_feature_label_pair(features, labels, 2)
+    print_feature_label_pair(features, labels, 42)
+    print_feature_label_pair(features, labels, 200)
