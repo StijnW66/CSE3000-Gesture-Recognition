@@ -32,6 +32,30 @@ public:
     void RunPipeline(uint16_t rawData[NUM_PDs][GESTURE_BUFFER_LENGTH], int gestureSignalLength, uint16_t thresholds[NUM_PDs])
     {
         // ----------------------------------------
+        Serial.println("Cutting off, Flipping and Trimming");
+        int index = -1;
+        while(++index < gestureSignalLength) {
+            for (size_t i = 0; i < NUM_PDs; i++)
+                rawData[i][index] = max(0, thresholds[i] - rawData[i][index]);
+        }
+        // Trim the signal
+        bool trimmed = false;
+        int trimCount = 0;
+        while(index-- >= 0 && trimCount++ < DETECTION_END_WINDOW_LENGTH * DETECTION_END_WINDOW_TRIM) {
+            bool zero = true;
+            for (size_t i = 0; i < NUM_PDs; i++)
+                zero = zero && (rawData[i][index] <= 2);
+            
+            if (zero) {
+                trimmed = true;
+                gestureSignalLength--;
+            }
+        }
+        if(trimmed) gestureSignalLength++;
+
+        sendSignal(rawData, gestureSignalLength);
+        
+        // ----------------------------------------
         Serial.println("FFT Filtering");
 
         int nonZeroStart[NUM_PDs];

@@ -124,34 +124,7 @@ void receiverLoopMain() {
                 }
                 else endDetected = true;
 
-// ---------------------------------------------------
-                // Flip the signal
-                int index = -1;
-                while(++index < gestureSignalLength) {
-                    for (size_t i = 0; i < NUM_PDs; i++)
-                        photodiodeData[i][index] = max(0, edgeDetector[i].getCutOffThreshold() - photodiodeData[i][index]);
-                }
-
-                // Trim the signal
-                bool trimmed = false;
-                int trimCount = 0;
-
-                while(index-- >= 0 && trimCount++ < DETECTION_END_WINDOW_LENGTH * DETECTION_END_WINDOW_TRIM) {
-                    bool zero = true;
-                    for (size_t i = 0; i < NUM_PDs; i++)
-                        zero = zero && (photodiodeData[i][index] <= 2);
-                    
-                    if (zero) {
-                        trimmed = true;
-                        gestureSignalLength--;
-                    }
-                }
-
-                if(trimmed) gestureSignalLength++;
-
-                sendSignal(photodiodeData, gestureSignalLength);
-
-// ------------------------------------------
+                // ------------------------------------------
                 // Run the pipeline
 
                 uint16_t thresholds[NUM_PDs];
