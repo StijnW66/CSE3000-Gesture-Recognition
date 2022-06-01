@@ -9,6 +9,8 @@
 #include "PreProcessingPipeline.h"
 #include "util.h"
 
+#include <arduinoFFT.h>
+
 
 int count = 0;
 bool detectionWindowFull = false;
@@ -24,6 +26,7 @@ int gestureSignalLength;
 
 SimplePhotoDiodeReader      reader;
 SimpleGestureEdgeDetector   edgeDetector[NUM_PDs];
+SimpleFFTCutOffFilter       fftFilter[NUM_PDs];
 PreProcessingPipeline       pipeline;
 
 SimpleTimer timer;
@@ -66,7 +69,9 @@ void receiverLoopMain() {
         
         for (size_t i = 0; i < NUM_PDs; i++)
         {
-            edgeDetector[i].setThreshold((QuickMedian<uint16_t>::GetMedian(thresholdAdjustmentBuffer[i], THRESHOLD_ADJ_BUFFER_LENGTH) * 9) / 10);
+            uint16_t stable = QuickMedian<uint16_t>::GetMedian(thresholdAdjustmentBuffer[i], THRESHOLD_ADJ_BUFFER_LENGTH);
+            edgeDetector[i].setThreshold(stable * DETECTION_THRESHOLD_COEFF);
+            edgeDetector[i].setCutOffThreshold(stable * CUTT_OFF_THRESHOLD_COEFF);
             taBuffer[i] = thresholdAdjustmentBuffer[i];
         }
     }
@@ -119,37 +124,17 @@ void receiverLoopMain() {
                 }
                 else endDetected = true;
 
-// ---------------------------------------------------
-                // Flip the signal
-                int index = -1;
-                while(++index < gestureSignalLength) {
-                    for (size_t i = 0; i < NUM_PDs; i++)
-                        photodiodeData[i][index] = max(edgeDetector[i].getThreshold() - photodiodeData[i][index], 0);
-                }
-
-                bool trimmed = false;
-
-                int trimCount = 0;
-
-                while(index-- >= 0 && trimCount++ < DETECTION_END_WINDOW_LENGTH * DETECTION_END_WINDOW_TRIM) {
-                    bool zero = true;
-                    for (size_t i = 0; i < NUM_PDs; i++)
-                        zero = zero && (photodiodeData[i][index] == 0);
-                    
-                    if (zero) {
-                        trimmed = true;
-                        gestureSignalLength--;
-                    }
-                }
-
-                if(trimmed) gestureSignalLength++;
-
-                sendSignal(photodiodeData, gestureSignalLength);
-// ----------------------------------------
-
+                // ------------------------------------------
                 // Run the pipeline
-                pipeline.RunPipeline(photodiodeData, gestureSignalLength);
-                
+
+                uint16_t thresholds[NUM_PDs];
+                for (size_t i = 0; i < NUM_PDs; i++)
+                {
+                    thresholds[i] = edgeDetector[i].getCutOffThreshold();
+                }
+
+                pipeline.RunPipeline(photodiodeData, gestureSignalLength, thresholds);
+
                 break;
             }
         }
@@ -166,8 +151,11 @@ void receiverLoopMain() {
 
         // Gesture took too long -> Light Intensity Change -> Threshold Recalculation
         if(!endDetected)
-            for (size_t i = 0; i < NUM_PDs; i++)
-                edgeDetector[i].setThreshold((QuickMedian<uint16_t>::GetMedian(photodiodeData[i], READING_WINDOW_LENGTH) * 4) / 5);
+            for (size_t i = 0; i < NUM_PDs; i++) {
+                uint16_t stable = QuickMedian<uint16_t>::GetMedian(thresholdAdjustmentBuffer[i], THRESHOLD_ADJ_BUFFER_LENGTH);
+                edgeDetector[i].setThreshold(stable * DETECTION_THRESHOLD_COEFF);
+                edgeDetector[i].setCutOffThreshold(stable * CUTT_OFF_THRESHOLD_COEFF);
+            }
 
         timer.restartTimer(timID);
     }
