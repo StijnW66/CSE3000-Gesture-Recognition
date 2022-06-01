@@ -1,10 +1,10 @@
 #include<vector>
 #include<Arduino.h>
 
-class SimpleSmoothFilter {
+class SmoothFilter {
 
     public:
-        SimpleSmoothFilter() {}
+        SmoothFilter() {}
 
         void SmoothSignal(float * signal, int length, int windSide, float weights[]) {
             int windSize = 2 * windSide + 1;

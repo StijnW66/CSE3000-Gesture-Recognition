@@ -5,7 +5,7 @@
 #include<algorithm>
 #include<QuickMedianLib.h>
 
-class SimpleHampel {
+class HampelOutlierDetector {
 
     private:
         int windowSize;
@@ -13,7 +13,7 @@ class SimpleHampel {
         std::vector<uint16_t> window;
 
     public:
-        SimpleHampel(int windowSize) : windowSize(windowSize) {
+        HampelOutlierDetector(int windowSize) : windowSize(windowSize) {
             window = std::vector<uint16_t>(2*windowSize + 1);
         }
         

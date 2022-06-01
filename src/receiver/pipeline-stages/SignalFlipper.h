@@ -1,7 +1,7 @@
-class SimpleSignalFlipper {
+class SignalFlipper {
 
     public: 
-        SimpleSignalFlipper() {}
+        SignalFlipper() {}
 
         template<typename T>        
         void FlipSignal(T * signal, int length, T low, T upper) {

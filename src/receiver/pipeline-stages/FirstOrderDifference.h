@@ -1,9 +1,9 @@
 #include<inttypes.h>
 
-class SimpleFirstOrderDifference {
+class FirstOrderDifference {
 
     public:
-        SimpleFirstOrderDifference() {}
+        FirstOrderDifference() {}
 
         void computeFOD(uint16_t * signal, uint16_t * dest, int length) {
             while(--length >= 1) {

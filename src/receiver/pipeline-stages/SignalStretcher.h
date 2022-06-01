@@ -3,10 +3,10 @@
 
 #include<inttypes.h>
 
-class SimpleSignalStretcher {
+class SignalStretcher {
 
     public:
-        SimpleSignalStretcher() {}
+        SignalStretcher() {}
 
         void StretchSignal(uint16_t * signal, int sLength, double * dest, int dLength) {
 

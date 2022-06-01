@@ -6,7 +6,7 @@
 #include "constants.hpp"
 #include "model_quantization.h"
 #include "prediction_enums.hpp"
-#include "../DiodeReader/parameters.h"
+#include "../receiver/parameters.h"
 
 #include "tensorflow/lite/micro/micro_error_reporter.h"
 #include "tensorflow/lite/micro/micro_interpreter.h"

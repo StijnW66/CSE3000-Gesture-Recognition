@@ -1,10 +1,10 @@
-#include"parameters.h"
+#include"../parameters.h"
 
-class SimpleMaxNormaliser
+class MaxNormaliser
 {
 
 public:
-    SimpleMaxNormaliser() {}
+    MaxNormaliser() {}
 
     void Normalise(float *signal, int length)
     {

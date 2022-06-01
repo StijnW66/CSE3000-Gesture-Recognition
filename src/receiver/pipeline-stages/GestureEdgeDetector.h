@@ -1,6 +1,6 @@
 #include<inttypes.h>
 
-class SimpleGestureEdgeDetector {
+class GestureEdgeDetector {
 
     private: 
         int detectionWindowLength;
@@ -9,8 +9,8 @@ class SimpleGestureEdgeDetector {
         int cutOffThreshold;
 
     public: 
-        SimpleGestureEdgeDetector() {}
-        SimpleGestureEdgeDetector(int detWL, int detEWL, int t) : detectionWindowLength(detWL), detectionEndWindowLength(detEWL), threshold(t) {}
+        GestureEdgeDetector() {}
+        GestureEdgeDetector(int detWL, int detEWL, int t) : detectionWindowLength(detWL), detectionEndWindowLength(detEWL), threshold(t) {}
 
         bool DetectStart(uint16_t * signal) {
             int count = detectionWindowLength;

@@ -1,20 +1,20 @@
 #include<inttypes.h>
 #include<arduinoFFT.h>
 
-#include"parameters.h"
-#include"SimpleSignalStretcher.h"
+#include"../parameters.h"
+#include"SignalStretcher.h"
 
-class SimpleFFTCutOffFilter {
+class FFTCutOffFilter {
     
     private:
         double sFFT[FFT_SIGNAL_LENGTH];
         double imag[FFT_SIGNAL_LENGTH];
 
-        SimpleSignalStretcher str;
+        SignalStretcher str;
         arduinoFFT fft;
 
     public:
-        SimpleFFTCutOffFilter() {}
+        FFTCutOffFilter() {}
 
         void ZeroImag() {
             for (size_t i = 0; i < FFT_SIGNAL_LENGTH; i++)

@@ -3,14 +3,14 @@
 #include <QuickMedianLib.h>
 #include <SimpleTimer.h>
 
-#include "SimplePhotoDiodeReader.h"
-#include "SimpleGestureEdgeDetector.h"
+#include "pipeline-stages/PhotoDiodeReader.h"
+#include "pipeline-stages/GestureEdgeDetector.h"
 #include "parameters.h"
-#include "PreProcessingPipeline.h"
+#include "ReceiverPipeline.h"
 #include "util.h"
 
-#include <arduinoFFT.h>
-
+#include "../ml-arduino/prediction_enums.hpp"
+#include "../ml-arduino/main_arduino.hpp"
 
 int count = 0;
 bool detectionWindowFull = false;
@@ -24,10 +24,10 @@ uint16_t photodiodeData[NUM_PDs][GESTURE_BUFFER_LENGTH];
 uint16_t * photodiodeDataPtr[NUM_PDs];
 int gestureSignalLength;
 
-SimplePhotoDiodeReader      reader;
-SimpleGestureEdgeDetector   edgeDetector[NUM_PDs];
-SimpleFFTCutOffFilter       fftFilter[NUM_PDs];
-PreProcessingPipeline       pipeline;
+PhotoDiodeReader      reader;
+GestureEdgeDetector   edgeDetector[NUM_PDs];
+FFTCutOffFilter             fftFilter[NUM_PDs];
+ReceiverPipeline            pipeline;
 
 SimpleTimer timer;
 int timID;
@@ -135,6 +135,13 @@ void receiverLoopMain() {
 
                 pipeline.RunPipeline(photodiodeData, gestureSignalLength, thresholds);
 
+                float (* output)[100] = pipeline.getPipelineOutput();
+
+                Gesture g =  inferGesture2d(output);
+                
+                Serial.print("Gesture: ");
+                Serial.println(g);
+
                 break;
             }
         }
@@ -167,7 +174,7 @@ void receiverSetup() {
         pinMode(pds[i], INPUT);
         taBuffer[i]          =   thresholdAdjustmentBuffer[i];
         photodiodeDataPtr[i] =   photodiodeData[i];
-        edgeDetector[i]      =   SimpleGestureEdgeDetector(DETECTION_WINDOW_LENGTH, DETECTION_END_WINDOW_LENGTH, 750);
+        edgeDetector[i]      =   GestureEdgeDetector(DETECTION_WINDOW_LENGTH, DETECTION_END_WINDOW_LENGTH, 750);
     }
 
     Serial.begin(9600);

@@ -3,32 +3,35 @@
 #include <initializer_list>
 #include <vector>
 
-#include "SimpleZScore.h"
-#include "SimpleMaxNormaliser.h"
-// #include "SimpleHampel.h"
-#include "SimpleFFTCutOffFilter.h"
-#include "SimpleSmoothFilter.h"
-#include "SimpleSignalStretcher.h"
-#include "SimpleSignalFlipper.h"
+#include "pipeline-stages/MaxNormaliser.h"
+// #include "pipeline-stages/HampelOutlierDetector.h"
+#include "pipeline-stages/FFTCutOffFilter.h"
+// #include "pipeline-stages/SmoothFilter.h"
+#include "pipeline-stages/SignalStretcher.h"
+#include "pipeline-stages/SignalFlipper.h"
 
 #include "parameters.h"
 #include "util.h"
 
-class PreProcessingPipeline {
+class ReceiverPipeline {
 
 private:
     float photodiodeDataFFTFiltered[NUM_PDs][FFT_SIGNAL_LENGTH];
     float normPhotodiodeData[NUM_PDs][GESTURE_BUFFER_LENGTH];
     float output[NUM_PDs][ML_DATA_LENGTH];
 
-    SimpleMaxNormaliser maxNormaliser;
-    // SimpleHampel hampel(5);
-    SimpleSmoothFilter smf;
-    SimpleSignalStretcher sstretch;
-    SimpleSignalFlipper sFlipper;
-    SimpleFFTCutOffFilter fftFilter[NUM_PDs];
+    MaxNormaliser maxNormaliser;
+    // HampelOutlierDetection hampel(5);
+    // SmoothFilter smf;
+    SignalStretcher sstretch;
+    SignalFlipper sFlipper;
+    FFTCutOffFilter fftFilter[NUM_PDs];
 
 public:
+    auto getPipelineOutput() {
+        return output;
+    }
+
     void RunPipeline(uint16_t rawData[NUM_PDs][GESTURE_BUFFER_LENGTH], int gestureSignalLength, uint16_t thresholds[NUM_PDs])
     {
         // ----------------------------------------
@@ -116,9 +119,9 @@ public:
         
         sendSignal(photodiodeDataFFTFiltered, FFT_SIGNAL_LENGTH);
 
-        for (size_t di = 0; di < NUM_PDs; di++)
+        for (int di = 0; di < NUM_PDs; di++)
         {
-            for (size_t i = 0; i < gestureSignalLength; i++)
+            for (int i = 0; i < gestureSignalLength; i++)
             {
                 normPhotodiodeData[di][i] = photodiodeDataFFTFiltered[di][i];
             }
