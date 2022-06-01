@@ -6,8 +6,15 @@ ser = serial.Serial('/dev/ttyACM0')
 
 print(ser.name)
 
-NUM_PLOTS   = 5
+NUM_PLOTS   = 4
 NUM_SIGNALS = 3
+
+PLOT_NAMES = [
+    "Raw",
+    "FFT Filtered",
+    "Normalised",
+    "Stretched"
+]
 
 def readData():
     data = [[] for _ in range(NUM_SIGNALS)]
@@ -67,11 +74,8 @@ while True:
     fig, ax = plt.subplots(3,2)
     fig.suptitle("PhotoDiode Data")
 
-    plotData(ax[0][0], data[0][0], data[0][1], data[0][2], "Raw"            ,"Time", "Photodiode Reading")
-    plotData(ax[0][1], data[1][0], data[1][1], data[1][2], "FFT Filtered"   ,"Time", "Photodiode Reading")
-    plotData(ax[1][0], data[2][0], data[2][1], data[2][2], "LPF Filtered"   ,"Time", "Photodiode Reading")
-    plotData(ax[1][1], data[3][0], data[3][1], data[3][2], "Normalised"     ,"Time", "Photodiode Reading")
-    plotData(ax[2][0], data[4][0], data[4][1], data[4][2], "Stretched"      ,"Time", "Photodiode Reading")
+    for plotIndex in range(NUM_PLOTS):
+        plotData(ax[plotIndex // 2][plotIndex % 2], data[plotIndex][0], data[plotIndex][1], data[plotIndex][2], PLOT_NAMES[plotIndex], "Time", "Photodiode Reading")
 
     plt.show()
 

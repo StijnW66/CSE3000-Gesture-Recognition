@@ -6,6 +6,7 @@ class SimpleGestureEdgeDetector {
         int detectionWindowLength;
         int detectionEndWindowLength;
         int threshold;
+        int cutOffThreshold;
 
     public: 
         SimpleGestureEdgeDetector() {}
@@ -39,8 +40,16 @@ class SimpleGestureEdgeDetector {
             threshold = t;
         }
 
+        void setCutOffThreshold(int t) {
+            cutOffThreshold = t;
+        }
+
         int getThreshold() {
             return threshold;
+        }
+
+        int getCutOffThreshold() {
+            return cutOffThreshold;
         }
 
 };

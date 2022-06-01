@@ -69,7 +69,9 @@ void receiverLoopMain() {
         
         for (size_t i = 0; i < NUM_PDs; i++)
         {
-            edgeDetector[i].setThreshold(QuickMedian<uint16_t>::GetMedian(thresholdAdjustmentBuffer[i], THRESHOLD_ADJ_BUFFER_LENGTH) * DETECTION_THRESHOLD_COEFF);
+            uint16_t stable = QuickMedian<uint16_t>::GetMedian(thresholdAdjustmentBuffer[i], THRESHOLD_ADJ_BUFFER_LENGTH);
+            edgeDetector[i].setThreshold(stable * DETECTION_THRESHOLD_COEFF);
+            edgeDetector[i].setCutOffThreshold(stable * CUTT_OFF_THRESHOLD_COEFF);
             taBuffer[i] = thresholdAdjustmentBuffer[i];
         }
     }
@@ -127,7 +129,7 @@ void receiverLoopMain() {
                 int index = -1;
                 while(++index < gestureSignalLength) {
                     for (size_t i = 0; i < NUM_PDs; i++)
-                        photodiodeData[i][index] = min(edgeDetector[i].getThreshold() * CUTT_OFF_THRESHOLD_COEFF, photodiodeData[i][index]);
+                        photodiodeData[i][index] = max(0, edgeDetector[i].getCutOffThreshold() - photodiodeData[i][index]);
                 }
 
                 // Trim the signal
@@ -137,7 +139,7 @@ void receiverLoopMain() {
                 while(index-- >= 0 && trimCount++ < DETECTION_END_WINDOW_LENGTH * DETECTION_END_WINDOW_TRIM) {
                     bool zero = true;
                     for (size_t i = 0; i < NUM_PDs; i++)
-                        zero = zero && (abs(photodiodeData[i][index] - (edgeDetector[i].getThreshold() * CUTT_OFF_THRESHOLD_COEFF)) <= 2);
+                        zero = zero && (photodiodeData[i][index] <= 2);
                     
                     if (zero) {
                         trimmed = true;
@@ -155,7 +157,7 @@ void receiverLoopMain() {
                 uint16_t thresholds[NUM_PDs];
                 for (size_t i = 0; i < NUM_PDs; i++)
                 {
-                    thresholds[i] = edgeDetector[i].getThreshold() * CUTT_OFF_THRESHOLD_COEFF;
+                    thresholds[i] = edgeDetector[i].getCutOffThreshold();
                 }
 
                 pipeline.RunPipeline(photodiodeData, gestureSignalLength, thresholds);
@@ -176,8 +178,11 @@ void receiverLoopMain() {
 
         // Gesture took too long -> Light Intensity Change -> Threshold Recalculation
         if(!endDetected)
-            for (size_t i = 0; i < NUM_PDs; i++)
-                edgeDetector[i].setThreshold(QuickMedian<uint16_t>::GetMedian(photodiodeData[i], READING_WINDOW_LENGTH) * DETECTION_THRESHOLD_COEFF);
+            for (size_t i = 0; i < NUM_PDs; i++) {
+                uint16_t stable = QuickMedian<uint16_t>::GetMedian(thresholdAdjustmentBuffer[i], THRESHOLD_ADJ_BUFFER_LENGTH);
+                edgeDetector[i].setThreshold(stable * DETECTION_THRESHOLD_COEFF);
+                edgeDetector[i].setCutOffThreshold(stable * CUTT_OFF_THRESHOLD_COEFF);
+            }
 
         timer.restartTimer(timID);
     }
