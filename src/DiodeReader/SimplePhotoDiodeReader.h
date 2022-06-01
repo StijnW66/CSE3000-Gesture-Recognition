@@ -5,7 +5,7 @@ class SimplePhotoDiodeReader {
     public:
         SimplePhotoDiodeReader() {}
 
-        void read(auto d, uint16_t * dest) {
+        void read(uint8_t d, uint16_t * dest) {
             *dest = analogRead(d);
         }
 };
