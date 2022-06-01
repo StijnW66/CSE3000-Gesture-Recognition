@@ -129,7 +129,7 @@ public:
 
         // Normalize dividing by the max
         for (size_t i = 0; i < NUM_PDs; i++)
-            maxNormaliser.Normalise(normPhotodiodeData, gestureSignalLength);
+            maxNormaliser.Normalise(normPhotodiodeData[i], gestureSignalLength);
 
         sendSignal(normPhotodiodeData, gestureSignalLength);   
 
