@@ -50,7 +50,7 @@ class MyWindow(QMainWindow):
         # CANDIDATE NUMBER
         #######################################################################################################################################
 
-        self.candidate_number = 4
+        self.candidate_number = 16
 
     def control_data_button_clicked(self):
         self.view("control")
@@ -221,7 +221,7 @@ class MyWindow(QMainWindow):
             os.makedirs(path)
 
 
-        with open(f"candidate_{self.candidate_number}.pickle", "ab+") as file:
+        with open(f"{path}/candidate_{self.candidate_number}.pickle", "ab+") as file:
             pickle.dump(np.array(self.data), file)
 
         print("done ", self.count)
