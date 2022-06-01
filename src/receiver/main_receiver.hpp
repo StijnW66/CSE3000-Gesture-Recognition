@@ -3,10 +3,11 @@
 #include <QuickMedianLib.h>
 #include <SimpleTimer.h>
 
-#include "pipeline-stages/PhotoDiodeReader.h"
-#include "pipeline-stages/GestureEdgeDetector.h"
+#include "GRDiodeReader.h"
+#include "GREdgeDetector.h"
+#include "GRPreprocessingPipeline.h"
+
 #include "parameters.h"
-#include "ReceiverPipeline.h"
 #include "util.h"
 
 #include "../ml-arduino/prediction_enums.hpp"
@@ -24,10 +25,9 @@ uint16_t photodiodeData[NUM_PDs][GESTURE_BUFFER_LENGTH];
 uint16_t * photodiodeDataPtr[NUM_PDs];
 int gestureSignalLength;
 
-PhotoDiodeReader      reader;
-GestureEdgeDetector   edgeDetector[NUM_PDs];
-FFTCutOffFilter             fftFilter[NUM_PDs];
-ReceiverPipeline            pipeline;
+GRDiodeReader               reader;
+GREdgeDetector              edgeDetector[NUM_PDs];
+GRPreprocessingPipeline     pipeline;
 
 SimpleTimer timer;
 int timID;
@@ -174,7 +174,7 @@ void receiverSetup() {
         pinMode(pds[i], INPUT);
         taBuffer[i]          =   thresholdAdjustmentBuffer[i];
         photodiodeDataPtr[i] =   photodiodeData[i];
-        edgeDetector[i]      =   GestureEdgeDetector(DETECTION_WINDOW_LENGTH, DETECTION_END_WINDOW_LENGTH, 750);
+        edgeDetector[i]      =   GREdgeDetector(DETECTION_WINDOW_LENGTH, DETECTION_END_WINDOW_LENGTH, 750);
     }
 
     Serial.begin(9600);

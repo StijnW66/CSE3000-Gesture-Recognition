@@ -1,9 +1,9 @@
 #include<inttypes.h>
 
-class PhotoDiodeReader {
+class GRDiodeReader {
 
     public:
-        PhotoDiodeReader() {}
+        GRDiodeReader() {}
 
         void read(uint8_t d, uint16_t * dest) {
             *dest = analogRead(d);

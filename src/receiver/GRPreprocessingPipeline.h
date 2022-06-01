@@ -13,7 +13,7 @@
 #include "parameters.h"
 #include "util.h"
 
-class ReceiverPipeline {
+class GRPreprocessingPipeline {
 
 private:
     float photodiodeDataFFTFiltered[NUM_PDs][FFT_SIGNAL_LENGTH];
