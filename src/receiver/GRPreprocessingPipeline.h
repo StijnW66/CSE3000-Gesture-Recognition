@@ -39,7 +39,7 @@ public:
         int index = -1;
         while(++index < gestureSignalLength) {
             for (size_t i = 0; i < NUM_PDs; i++)
-                rawData[i][index] = max(0, thresholds[i] - rawData[i][index]);
+                rawData[i][index] = max(0, thresholds[i] * CUTT_OFF_THRESHOLD_COEFF_PRE_FFT - rawData[i][index]);
         }
         // Trim the signal
         bool trimmed = false;
@@ -61,35 +61,6 @@ public:
         // ----------------------------------------
         Serial.println("FFT Filtering");
 
-        int nonZeroStart[NUM_PDs];
-        int nonZeroEnd[NUM_PDs];
-
-        for (size_t i = 0; i < NUM_PDs; i++)
-        {
-            nonZeroStart[i] = 0;
-            nonZeroEnd[i] = gestureSignalLength--;
-        }
-
-        for (size_t i = 0; i < NUM_PDs; i++) {
-
-            bool updateStart = true;
-            bool updateEnd = true;
-
-            while(nonZeroStart[i] < nonZeroEnd[i]) { 
-                if (updateStart)
-                {
-                    if(rawData[i][nonZeroStart[i]] <= 1) nonZeroStart[i]++;
-                    else updateStart = false;
-                }
-                if (updateEnd)
-                {
-                    if(rawData[i][nonZeroEnd[i]] <= 1) nonZeroEnd[i]--;
-                    else updateEnd = false;
-                }
-                if (!updateStart && !updateEnd) break;
-            }
-        }
-
         // Filter using FFT
         for (size_t i = 0; i < NUM_PDs; i++)
         {
@@ -97,24 +68,14 @@ public:
             fftFilter[i].Filter(rawData[i], gestureSignalLength, 10, 1000 / READ_PERIOD);
             fftFilter[i].MoveDataToBufferF(photodiodeDataFFTFiltered[i]);
         }
-
-        // Adjust the zero out range and update the signal length
-        for (size_t i = 0; i < NUM_PDs; i++)
-        {
-            nonZeroStart[i] = nonZeroStart[i] * FFT_SIGNAL_LENGTH / gestureSignalLength;
-            nonZeroEnd[i] = nonZeroEnd[i] * FFT_SIGNAL_LENGTH / gestureSignalLength;
-        }
  
         gestureSignalLength = FFT_SIGNAL_LENGTH;
 
         // Zero out all samples that are not in the previously computed range
-        for (size_t di = 0; di < NUM_PDs; di++)
+        for (size_t i = 0; i < gestureSignalLength; i++)
         {
-            for (int i = 0; i < gestureSignalLength; i++)
-            {
-                if(i < nonZeroStart[di] || i > nonZeroEnd[di]) photodiodeDataFFTFiltered[di][i] = 0;
-                else photodiodeDataFFTFiltered[di][i] = max(0, photodiodeDataFFTFiltered[di][i]);
-            }    
+            for (size_t di = 0; di < NUM_PDs; di++)
+                photodiodeDataFFTFiltered[di][i] = max(0, photodiodeDataFFTFiltered[di][i] - thresholds[di] * CUTT_OFF_THRESHOLD_COEFF_POST_FFT);
         }
         
         sendSignal(photodiodeDataFFTFiltered, FFT_SIGNAL_LENGTH);
@@ -139,7 +100,6 @@ public:
         // -----------------------------------------
         Serial.println("Stretching ...");
 
-        // Smooth the signal
         for (size_t i = 0; i < NUM_PDs; i++) {
             sstretch.StretchSignal(
                 normPhotodiodeData[i],
