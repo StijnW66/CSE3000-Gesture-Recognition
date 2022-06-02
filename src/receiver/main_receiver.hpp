@@ -169,7 +169,7 @@ void receiverLoopMain() {
 }
 
 void receiverSetup() {
-  for (size_t i = 0; i < NUM_PDs; i++)
+    for (size_t i = 0; i < NUM_PDs; i++)
     {
         pinMode(pds[i], INPUT);
         taBuffer[i]          =   thresholdAdjustmentBuffer[i];

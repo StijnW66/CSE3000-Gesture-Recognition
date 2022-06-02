@@ -17,7 +17,7 @@ class GRPreprocessingPipeline {
 
 private:
     float photodiodeDataFFTFiltered[NUM_PDs][FFT_SIGNAL_LENGTH];
-    float normPhotodiodeData[NUM_PDs][GESTURE_BUFFER_LENGTH];
+    float (* normPhotodiodeData)[FFT_SIGNAL_LENGTH];
     float output[NUM_PDs][ML_DATA_LENGTH];
 
     MaxNormaliser maxNormaliser;
@@ -36,18 +36,19 @@ public:
     {
         // ----------------------------------------
         Serial.println("Cutting off, Flipping and Trimming");
-        int index = -1;
-        while(++index < gestureSignalLength) {
-            for (size_t i = 0; i < NUM_PDs; i++)
-                rawData[i][index] = max(0, thresholds[i] * CUTT_OFF_THRESHOLD_COEFF_PRE_FFT - rawData[i][index]);
-        }
+        
+        FOR(di, i, NUM_PDs, gestureSignalLength, 
+            rawData[di][i] = max(0, thresholds[di] * CUTT_OFF_THRESHOLD_COEFF_PRE_FFT - rawData[di][i])
+        );
+
         // Trim the signal
         bool trimmed = false;
         int trimCount = 0;
-        while(index-- >= 0 && trimCount++ < DETECTION_END_WINDOW_LENGTH * DETECTION_END_WINDOW_TRIM) {
+        int i = gestureSignalLength;
+        while(i-- >= 0 && trimCount++ < DETECTION_END_WINDOW_LENGTH * DETECTION_END_WINDOW_TRIM) {
             bool zero = true;
-            for (size_t i = 0; i < NUM_PDs; i++)
-                zero = zero && (rawData[i][index] <= 2);
+            for (size_t di = 0; di < NUM_PDs; di++)
+                zero = zero && (rawData[di][i] <= 1);
             
             if (zero) {
                 trimmed = true;
@@ -71,22 +72,13 @@ public:
  
         gestureSignalLength = FFT_SIGNAL_LENGTH;
 
-        // Zero out all samples that are not in the previously computed range
-        for (size_t i = 0; i < gestureSignalLength; i++)
-        {
-            for (size_t di = 0; di < NUM_PDs; di++)
-                photodiodeDataFFTFiltered[di][i] = max(0, photodiodeDataFFTFiltered[di][i] - thresholds[di] * CUTT_OFF_THRESHOLD_COEFF_POST_FFT);
-        }
+        FOR(di, i, NUM_PDs, gestureSignalLength, 
+            photodiodeDataFFTFiltered[di][i] = max(0, photodiodeDataFFTFiltered[di][i] - thresholds[di] * CUTT_OFF_THRESHOLD_COEFF_POST_FFT);
+        );
         
         sendSignal(photodiodeDataFFTFiltered, FFT_SIGNAL_LENGTH);
 
-        for (int di = 0; di < NUM_PDs; di++)
-        {
-            for (int i = 0; i < gestureSignalLength; i++)
-            {
-                normPhotodiodeData[di][i] = photodiodeDataFFTFiltered[di][i];
-            }
-        }
+        normPhotodiodeData = photodiodeDataFFTFiltered;
 
         // ----------------------------------------
         Serial.println("Normalising ...");
