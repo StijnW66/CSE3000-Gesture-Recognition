@@ -1,7 +1,7 @@
 #include<inttypes.h>
 #include<arduinoFFT.h>
 
-#include"../parameters.h"
+#include"../receiver-parameters.h"
 #include"SignalStretcher.h"
 
 class FFTCutOffFilter {

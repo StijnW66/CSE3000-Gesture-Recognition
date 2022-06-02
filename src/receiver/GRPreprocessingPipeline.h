@@ -10,8 +10,8 @@
 #include "pipeline-stages/SignalStretcher.h"
 #include "pipeline-stages/SignalFlipper.h"
 
-#include "parameters.h"
-#include "util.h"
+#include "receiver-parameters.h"
+#include "receiver-util.h"
 
 class GRPreprocessingPipeline {
 

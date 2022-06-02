@@ -1,4 +1,4 @@
-#include"../parameters.h"
+#include"../receiver-parameters.h"
 
 class MaxNormaliser
 {
