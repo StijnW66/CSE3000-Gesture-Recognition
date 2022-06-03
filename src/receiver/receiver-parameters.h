@@ -28,9 +28,9 @@
 #define PD3 A2
 
 uint8_t pds[NUM_PDs] = {
-    PD1,
+    PD3,
     PD2,
-    PD3
+    PD1
 };
 
 #endif
