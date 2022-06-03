@@ -71,7 +71,7 @@ while True:
         data[i] = readData()
     
     # plot
-    fig, ax = plt.subplots(3,2)
+    fig, ax = plt.subplots(NUM_PLOTS // 2,2)
     fig.suptitle("PhotoDiode Data")
 
     for plotIndex in range(NUM_PLOTS):
