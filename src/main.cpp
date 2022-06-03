@@ -19,5 +19,5 @@ void setup() {
 void loop() {
   Serial.println((String)analogRead(A0) + "  " + analogRead(A1) + "  " + analogRead(A2));
   Serial1.println((String)analogRead(A0) + "  " + analogRead(A1) + "  " + analogRead(A2));
-  delay(50);
+  delay(10);
 }

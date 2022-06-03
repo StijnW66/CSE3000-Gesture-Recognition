@@ -41,8 +41,8 @@ class MyWindow(QMainWindow):
         self.initUI()
         self.data = []
         self.chosen_hand = "right_hand"
-        self.diode_configuration_name = "triangle_555_606060" # shape_distances_angles
-        self.lux_level = -1
+        self.diode_configuration_name = "triangle_666_606060" # shape_distances_angles
+        self.lux_level = 1000
         self.count = 0
 
         self.accept_data = True
