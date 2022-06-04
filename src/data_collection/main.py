@@ -50,7 +50,7 @@ class MyWindow(QMainWindow):
         # CANDIDATE NUMBER
         #######################################################################################################################################
 
-        self.candidate_number = 16
+        self.candidate_number = 30
 
     def control_data_button_clicked(self):
         self.view("control")
@@ -194,9 +194,9 @@ class MyWindow(QMainWindow):
 
         self.data = []
         if gesture == "control":
-            num_readings = 200
+            num_readings = 1000
         else:
-            num_readings = 100
+            num_readings = 500
         for i in range(num_readings):
             line = reader.readline()  # read a byte string
             if line:
