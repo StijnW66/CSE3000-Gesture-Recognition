@@ -57,7 +57,7 @@ class FormatData():
                     with open(f"{new_path}/iteration_{i}.txt", 'w') as f:
                         f.write(str(len(iteration)))
                         f.write("\n")
-                        f.write(f"{medians[1]} {medians[0]} {medians[2]}")
+                        f.write(f"{int(medians[1])} {int(medians[0])} {int(medians[2])}")
                         for row in iteration:
                             f.write("\n")
                             f.write(f"{row[1]} {row[0]} {row[2]}")
