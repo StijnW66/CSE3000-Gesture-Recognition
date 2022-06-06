@@ -61,7 +61,7 @@ public:
         for (size_t i = 0; i < NUM_PDs; i++)
         {
             fftFilter[i].ZeroImag();
-            fftFilter[i].Filter(rawData[i], gestureSignalLength, 10, 1000 / READ_PERIOD);
+            fftFilter[i].Filter(rawData[i], gestureSignalLength, 5, 1000 / READ_PERIOD);
             fftFilter[i].MoveDataToBufferF(photodiodeDataFFTFiltered[i]);
         }
  
