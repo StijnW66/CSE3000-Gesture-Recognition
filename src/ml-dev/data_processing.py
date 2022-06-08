@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import Iterable, List, Tuple
 from scipy.io import arff
 from os import listdir, path
 from sklearn.model_selection import train_test_split
@@ -27,19 +27,20 @@ def _load_all_pickled_data(file_path) -> List:
                 return data
 
 
-def _load_and_combine_all_candidates(data_path: str) -> np.ndarray:
+def _load_and_combine_all_candidates(data_path: str, num_to_process: int = 100) -> np.ndarray:
     """
     Load and combine the data of a particular gesture from all candidates.
 
     Args:
-        data_path: Path to the folder containing the .pickle files of a particular gestures
+        data_path: Path to the folder containing the .pickle files of a particular gesture
         as performed with a particular hand
+        num_to_process: Number of candidates to (maximally) process
 
     Returns:
         Numpy array where each entry is an (m x 3 x 1) 'image'
     """
-    to_process = ["candidate_1.pickle", "candidate_2.pickle", "candidate_3.pickle", "candidate_4.pickle"]
-    combined_data = np.empty((0, 100, 3), dtype=np.uint16) # TODO: Make this more programmatic instead of hardcording data sizes
+    to_process = [f"candidate_{i}.pickle" for i in range (1, num_to_process + 1)]
+    combined_data = np.empty((0, 100, 3), dtype=np.float32) # TODO: Make this more programmatic instead of hardcording data sizes
     for candidate in listdir(data_path):
         if candidate in to_process:
             file_name = path.join(data_path, candidate)
@@ -48,10 +49,15 @@ def _load_and_combine_all_candidates(data_path: str) -> np.ndarray:
     return combined_data
 
 
-def load_and_combine_raw_data() -> Tuple[np.ndarray, np.ndarray]:
+def load_and_combine_data(raw_data_path: str = path.join("data", "processed_data"),
+                          num_to_process: int = 100) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Load the raw dataset, combining the left and right hand results across all
+    Load the processed dataset, combining the left and right hand results across all
     candidates for each class.
+
+    Args:
+        raw_data_path: Root directory where data for each class is stored
+        num_to_process: Number of candidates to (maximally) process
 
     Returns:
         features: Numpy array where each entry is an (m x 3 x 1) 'image'
@@ -61,13 +67,12 @@ def load_and_combine_raw_data() -> Tuple[np.ndarray, np.ndarray]:
     features = []
     labels = []
 
-    raw_data_path = path.join("data", "initial_raw_data")
     for gesture_name in listdir(raw_data_path):
         # Load and combine left and right hand data
         left_hand_data_path = path.join(raw_data_path, gesture_name, "left_hand")
-        left_hand_data = _load_and_combine_all_candidates(left_hand_data_path)
+        left_hand_data = _load_and_combine_all_candidates(left_hand_data_path, num_to_process)
         right_hand_data_path = path.join(raw_data_path, gesture_name, "right_hand")
-        right_hand_data = _load_and_combine_all_candidates(right_hand_data_path)
+        right_hand_data = _load_and_combine_all_candidates(right_hand_data_path, num_to_process)
         combined_data = np.append(left_hand_data, right_hand_data, axis=0)
 
         # Extend features list and create corresponding label list entries
@@ -76,7 +81,7 @@ def load_and_combine_raw_data() -> Tuple[np.ndarray, np.ndarray]:
         class_count += 1
 
     # Convert to numpy arrays and add channel dimension to features
-    features = np.array(features, dtype=np.uint16)
+    features = np.array(features, dtype=np.float32)
     features = np.expand_dims(features, -1)
     labels = np.array(labels, dtype=np.uint8)
     return features, labels
@@ -91,9 +96,9 @@ def load_and_combine_uwave() -> Tuple[np.ndarray, np.ndarray]:
         labels: Numpy array where each entry is an integer corresponding to a class
     """
     # Load and combine train and test data
-    train_data_path = path.join("data", "UWaveGestureLibraryAll_TRAIN.arff")
+    train_data_path = path.join("uwave", "data", "UWaveGestureLibraryAll_TRAIN.arff")
     data_train, meta_train = arff.loadarff(train_data_path)
-    test_data_path = path.join("data", "UWaveGestureLibraryAll_TEST.arff")
+    test_data_path = path.join("uwave", "data", "UWaveGestureLibraryAll_TEST.arff")
     data_test, meta_test = arff.loadarff(test_data_path)
     combined_data = np.hstack((data_train, data_test))
 
@@ -169,21 +174,20 @@ def reshape_to_sensor_output(features: np.ndarray) -> List:
     return reshaped_output
 
 
-def print_feature_label_pair(features: List, labels: np.ndarray, idx: int):
+def print_feature_label_pair(features: Iterable, labels: np.ndarray, idx: int):
     print(f"=== FEATURE LIST PAIR AT INDEX {idx} ===")
     print("Feature:")
     print(repr(np.array(features[idx], dtype=np.float32)))
-    print("Label:")
-    print(labels[idx])
+    print(f"Label: {labels[idx]}")
 
 
 if __name__ == "__main__":
-    print("===== INITIAL RAW DATASET =====")
-    features, labels = load_and_combine_raw_data()
+    print("===== PROCESSED DATASET =====")
+    features, labels = load_and_combine_data(num_to_process=29)
     print("Feature data shape: ", features.shape)
     print("Labels data shape: ", labels.shape)
 
-    features = reshape_to_sensor_output(features)
-    print_feature_label_pair(features, labels, 2)
-    print_feature_label_pair(features, labels, 42)
-    print_feature_label_pair(features, labels, 200)
+    print("===== RAW DATASET =====")
+    features, labels = load_and_combine_data(path.join("data", "raw_data"), num_to_process=29)
+    print("Feature data shape: ", features.shape)
+    print("Labels data shape: ", labels.shape)
