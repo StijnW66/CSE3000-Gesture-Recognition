@@ -23,14 +23,18 @@ class FFTCutOffFilter {
             }
         }
 
-        void Filter(uint16_t * signal, int length, int cutOff, int samplingFrequency) {
+        void Filter(uint16_t * signal, int length, int cutOffFreq, int samplingFrequency) {
             str.StretchSignal(signal, length, sFFT, FFT_SIGNAL_LENGTH);
+            
+            double actualSamplingFrequency = (samplingFrequency * length * 1.0) / FFT_SIGNAL_LENGTH;
 
-            fft = arduinoFFT(sFFT, imag, FFT_SIGNAL_LENGTH, samplingFrequency);
+            fft = arduinoFFT(sFFT, imag, FFT_SIGNAL_LENGTH, actualSamplingFrequency);
 
             fft.Compute(FFT_FORWARD);
 
             int piFreqIndex = FFT_SIGNAL_LENGTH/2;
+
+            int cutOff = round(cutOffFreq * 2 * piFreqIndex / actualSamplingFrequency);
 
             for (int freqI = 0; freqI < piFreqIndex - cutOff; freqI++) {
                     sFFT[piFreqIndex - freqI] = imag[piFreqIndex - freqI] = 0;
