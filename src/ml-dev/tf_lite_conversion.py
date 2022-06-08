@@ -130,7 +130,7 @@ def evaluate_tflite_model(file_path: str, model: tf.keras.Model,
 
 
 if __name__ == "__main__":
-    features, labels = data_processing.load_and_combine_raw_data()
+    features, labels = data_processing.load_and_combine_data()
     # features, labels = data_processing.preprocess_input(features, labels)
     train_dataset, test_dataset = data_processing.split_to_tf_datasets(features, labels)
     running_model = models.slam_cnn_padding_pyramid_lite(

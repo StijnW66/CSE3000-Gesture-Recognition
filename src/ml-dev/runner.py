@@ -15,7 +15,7 @@ import results_analysis
 def compile_model(model: tf.keras.Model):
     model.summary()
     model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
         loss=tf.keras.losses.SparseCategoricalCrossentropy(),
         metrics=[tf.keras.metrics.SparseCategoricalAccuracy()])
 
@@ -128,10 +128,10 @@ def train_uwave():
 
 def train_initial_raw_dataset():
     print("========== INITIAL RAW DATASET ==========")
-    features, labels = data_processing.load_and_combine_raw_data()
+    features, labels = data_processing.load_and_combine_data()
     x_train, x_test, y_train, y_test = train_test_split(features,
                                                         labels,
-                                                        test_size=0.25,
+                                                        test_size=0.20,
                                                         random_state=constants.RANDOM_SEED)
 
     running_model = models.slam_cnn_padding_pyramid_lite(features[0].shape, constants.NUM_CLASSES_RAW_DATA)
@@ -141,17 +141,21 @@ def train_initial_raw_dataset():
 # ===== END CONVENIENCE METHODS =====
 
 if __name__ == "__main__":
-    features, labels = data_processing.load_and_combine_raw_data()
-    acc_per_fold, loss_per_fold, confusion_per_fold = kfold_cross_validation(
-        models.slam_cnn_padding_pyramid_lite(features[0].shape, constants.NUM_CLASSES_RAW_DATA),
-        features, labels, 5, False)
-    results_analysis.print_kfold_results(acc_per_fold, loss_per_fold, confusion_per_fold)
+    train_initial_raw_dataset()
+
+    # features, labels = data_processing.load_and_combine_raw_data()
+
+    # acc_per_fold, loss_per_fold, confusion_per_fold = kfold_cross_validation(
+    #     models.narrow_slam_cnn_padding_pyramid(features[0].shape, constants.NUM_CLASSES_RAW_DATA),
+    #     features, labels, 5, False)
+    # results_analysis.print_kfold_results(acc_per_fold, loss_per_fold, confusion_per_fold)
+    
     # model_list = [
-    #     models.slam_cnn_padding(features[0].shape, constants.NUM_CLASSES_INITIAL_RAW_DATA),
-    #     models.slam_cnn_padding_lite(features[0].shape, constants.NUM_CLASSES_INITIAL_RAW_DATA),
-    #     models.slam_cnn_padding_pyramid(features[0].shape, constants.NUM_CLASSES_INITIAL_RAW_DATA),
-    #     models.slam_cnn_padding_pyramid_lite(features[0].shape, constants.NUM_CLASSES_INITIAL_RAW_DATA)]
+    #     models.slam_cnn_padding(features[0].shape, constants.NUM_CLASSES_RAW_DATA),
+    #     models.slam_cnn_padding_pyramid(features[0].shape, constants.NUM_CLASSES_RAW_DATA),
+    #     models.slam_cnn_padding_pyramid_lite(features[0].shape, constants.NUM_CLASSES_RAW_DATA),
+    #     models.narrow_slam_cnn_padding_pyramid(features[0].shape, constants.NUM_CLASSES_RAW_DATA)]
     # model_names = [
-    #     "SLAM CNN Padding", "SLAM CNN Padding Lite",
-    #     "SLAM CNN Padding Pyramid", "SLAM CNN Padding Pyramid Lite"]
+    #     "SLAM CNN Padding", "SLAM CNN Padding Pyramid",
+    #     "SLAM CNN Padding Pyramid Lite", "Narrow SLAM CNN Padding Pyramid"]
     # compare_models(model_list, model_names, features, labels, num_folds=5)
