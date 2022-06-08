@@ -8,22 +8,62 @@ import subprocess
 class FormatData():
     def __init__(self):
         self.base_paths = []
-        self.convert_files()
+        # self.pass_through_pipelie()
+        # self.convert_processed_files()
 
-    def convert_files(self):
-        for directory in glob.iglob("./src/data_collection/data" + '**/**/*_hand', recursive=True):
+    def convert_processed_files(self):
+        """
+        This reads through the data that was passed through the pipeline and converts it back to the original format
+        """
+
+        # Get a list of all the paths
+        self.base_paths = []
+        for directory in glob.iglob("./post_process/interpolated_data/src/data_collection/data" + '**/**/**/candidate*', recursive=True):
             self.base_paths.append(directory)
 
-        pre_dir = "./new_data"
+        for path in self.base_paths:
+            head, tail = os.path.split(path)
+            pre_path = "./reformatted"
+            filenames = os.listdir(path)
+            data_to_pickle = []
 
-        count = 0
+            # Get the data from the files
+            for filename in filenames:
+                data = np.loadtxt(path + "/" + filename)
+                data_to_pickle.append(data)
 
-        print(self.base_paths[9])
+            new_path = f"{pre_path}/{head}"
+            if (not os.path.exists(new_path)):
+                os.makedirs(new_path)
 
-        # for path in self.base_paths:
-        for filename in glob.iglob(f'{self.base_paths[9]}/*.pickle', recursive=True):
-            if count == 1:
-                print(filename)
+            # Save the data back into pickled files
+            with open(f"{new_path}/{tail}.pickle", "wb+") as f:
+                for data in data_to_pickle:
+                    pickle.dump(data, f)
+
+
+
+
+
+    def pass_through_pipelie(self):
+        """
+        This reads through the data that needs to be passed through the pipeline and converts a copy of it to the format
+        that the pipeline expects then passes this new data through the pipeline
+        """
+
+        # Get all the paths for data we want to pass through to pipeline
+        self.base_paths = []
+        for directory in glob.iglob("./interpolated_data/src/data_collection/data" + '**/**/*_hand', recursive=True):
+            self.base_paths.append(directory)
+
+        # Path to prepend
+        pre_dir = "./interpolated_preprocessed"
+
+        # Go through every path
+        for base_path in self.base_paths:
+            # Get all files in the path
+            for filename in glob.iglob(f'{base_path}/*.pickle', recursive=True):
+                # Extract all the data from the file
                 with open(filename, 'rb') as f:
                     self.unpickled = []
                     while True:
@@ -31,18 +71,18 @@ class FormatData():
                             self.unpickled.append(pickle.load(f))
                         except EOFError:
                             break
-                # print(filename)
-                # print(split(filename))
-                candidate = split(filename)[1].replace(".pickle", "")
-                print(candidate)
-                path_dir = dirname(filename)
-                print(path_dir)
-                # print(len(self.unpickled))
 
+                # Get the candidate number from the path
+                candidate = split(filename)[1].replace(".pickle", "")
+                path_dir = dirname(filename)
+
+                # Get the threshold values from the control path
                 medians = self.get_baselines(candidate)
 
+                # Create a new path where the reformatted unprocessed data will be saved
                 new_path = pre_dir+path_dir+"/"+candidate
 
+                # Create a new path where the processed data will be saved
                 post_process_path = "./post_process"+path_dir+"/"+candidate
 
                 if (not os.path.exists(new_path)):
@@ -52,8 +92,7 @@ class FormatData():
                     os.makedirs(post_process_path)
 
                 for i, iteration in enumerate(self.unpickled):
-                    if i == 0:
-                        print(iteration)
+                    # Save the pickled data in the format that the pipeline expects
                     with open(f"{new_path}/iteration_{i}.txt", 'w') as f:
                         f.write(str(len(iteration)))
                         f.write("\n")
@@ -61,20 +100,15 @@ class FormatData():
                         for row in iteration:
                             f.write("\n")
                             f.write(f"{row[1]} {row[0]} {row[2]}")
-                    # print(new_path)
+
+                    # Run the pipeline on the reformatted unprocessed data that gets saved in the post_process path
                     subprocess.run(["../receiver-desktop/main.exe", f"../data_collection{new_path}/iteration_{i}.txt", f"{post_process_path}/iteration_{i}.txt"])
 
 
-            count += 1
-
     def get_baselines(self, candidate):
-        print(candidate)
         with open(f"./src/data_collection/data/control/{candidate}.pickle", 'rb') as f:
             data = pickle.load(f)
-            # print(data)
             medians = np.median(data, 0)
-            print(medians)
-
         return medians
 
 
