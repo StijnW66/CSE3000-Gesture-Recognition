@@ -1,3 +1,6 @@
+# Data
+*.pickle
+
 # IDE
 *.vscode
 
