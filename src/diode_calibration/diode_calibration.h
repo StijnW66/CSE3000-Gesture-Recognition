@@ -98,7 +98,7 @@ void calibrate_diode(uint8_t resistorIndex, std::vector<Resistor> powerSet, int 
   if ((read_sum / window) > 750) {
     // Reading too large, try next
     calibrate_diode(resistorIndex+1, powerSet, powerSetSize);
-  } else if ((read_sum / window) < 300) {
+  } else if ((read_sum / window) < 325) {
     // Reading too small, revert to previous (even though that was too large). Check that previous resistorIndex exists
     if (resistorIndex != 0) {
       set_resistor(powerSet[resistorIndex-1].pins);
