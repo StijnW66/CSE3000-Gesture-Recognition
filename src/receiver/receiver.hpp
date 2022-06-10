@@ -7,8 +7,8 @@
 #include "GREdgeDetector.h"
 #include "GRPreprocessingPipeline.h"
 
-#include "parameters.h"
-#include "util.h"
+#include "receiver-parameters.h"
+#include "receiver-util.h"
 
 #include "../ml-arduino/prediction_enums.hpp"
 #include "../ml-arduino/main_arduino.hpp"

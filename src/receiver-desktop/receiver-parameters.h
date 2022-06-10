@@ -23,14 +23,4 @@
 
 #define NUM_PDs 3
 
-#define PD1 A0
-#define PD2 A1
-#define PD3 A2
-
-uint8_t pds[NUM_PDs] = {
-    PD1,
-    PD2,
-    PD3
-};
-
 #endif

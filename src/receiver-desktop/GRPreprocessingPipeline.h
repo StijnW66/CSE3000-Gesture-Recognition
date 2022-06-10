@@ -1,7 +1,7 @@
-#include <Arduino.h>
 #include <inttypes.h>
 #include <initializer_list>
 #include <vector>
+#include <cmath>
 
 #include "pipeline-stages/MaxNormaliser.h"
 // #include "pipeline-stages/HampelOutlierDetector.h"
@@ -13,6 +13,8 @@
 #include "receiver-parameters.h"
 #include "receiver-util.h"
 
+using namespace std;
+
 class GRPreprocessingPipeline {
 
 private:
@@ -21,8 +23,6 @@ private:
     float output[NUM_PDs][ML_DATA_LENGTH];
 
     MaxNormaliser maxNormaliser;
-    // HampelOutlierDetection hampel(5);
-    // SmoothFilter smf;
     SignalStretcher sstretch;
     SignalFlipper sFlipper;
     FFTCutOffFilter fftFilter[NUM_PDs];
@@ -35,10 +35,9 @@ public:
     void RunPipeline(uint16_t rawData[NUM_PDs][GESTURE_BUFFER_LENGTH], int gestureSignalLength, uint16_t thresholds[NUM_PDs])
     {
         // ----------------------------------------
-        Serial.println("Cutting off, Flipping and Trimming");
-        
+        // CutOff and Flip : USe 1.1% the threshold
         FOR(di, i, NUM_PDs, gestureSignalLength, 
-            rawData[di][i] = max(0, thresholds[di] * CUTT_OFF_THRESHOLD_COEFF_PRE_FFT - rawData[di][i])
+            rawData[di][i] = max(0.0f, thresholds[di] * CUTT_OFF_THRESHOLD_COEFF_PRE_FFT - rawData[di][i])
         );
 
         // Trim the signal
@@ -56,12 +55,8 @@ public:
             }
         }
         if(trimmed) gestureSignalLength++;
-
-        sendSignal(rawData, gestureSignalLength);
         
         // ----------------------------------------
-        Serial.println("FFT Filtering");
-
         // Filter using FFT
         for (size_t i = 0; i < NUM_PDs; i++)
         {
@@ -73,25 +68,18 @@ public:
         gestureSignalLength = FFT_SIGNAL_LENGTH;
 
         FOR(di, i, NUM_PDs, gestureSignalLength, 
-            photodiodeDataFFTFiltered[di][i] = max(0, photodiodeDataFFTFiltered[di][i] - thresholds[di] * CUTT_OFF_THRESHOLD_COEFF_POST_FFT);
+            photodiodeDataFFTFiltered[di][i] = max(0.0f, photodiodeDataFFTFiltered[di][i] - thresholds[di] * CUTT_OFF_THRESHOLD_COEFF_POST_FFT);
         );
-        
-        sendSignal(photodiodeDataFFTFiltered, FFT_SIGNAL_LENGTH);
 
         normPhotodiodeData = photodiodeDataFFTFiltered;
 
         // ----------------------------------------
-        Serial.println("Normalising ...");
-
         // Normalize dividing by the max
         for (size_t i = 0; i < NUM_PDs; i++)
             maxNormaliser.Normalise(normPhotodiodeData[i], gestureSignalLength);
 
-        sendSignal(normPhotodiodeData, gestureSignalLength);   
-
         // -----------------------------------------
-        Serial.println("Stretching ...");
-
+        // Stretch and Flip back
         for (size_t i = 0; i < NUM_PDs; i++) {
             sstretch.StretchSignal(
                 normPhotodiodeData[i],
@@ -105,9 +93,5 @@ public:
                 ML_DATA_LENGTH,
                 0.0f,1.0f);
         }
-        
-        sendSignal(output, ML_DATA_LENGTH);   
-
-        Serial.println("Pipeline Done");
     }
 };

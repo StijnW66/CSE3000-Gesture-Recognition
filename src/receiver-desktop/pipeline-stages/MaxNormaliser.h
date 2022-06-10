@@ -1,4 +1,5 @@
 #include"../receiver-parameters.h"
+#include<inttypes.h>
 
 class MaxNormaliser
 {
