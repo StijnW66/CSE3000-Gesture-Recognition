@@ -1,5 +1,8 @@
-# Data
+# Data folder
 *.pickle
+
+# Txt files
+*.txt
 
 # IDE
 *.vscode
