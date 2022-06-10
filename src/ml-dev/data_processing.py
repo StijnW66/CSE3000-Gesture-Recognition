@@ -27,19 +27,21 @@ def _load_all_pickled_data(file_path) -> List:
                 return data
 
 
-def _load_and_combine_all_candidates(data_path: str, num_to_process: int = 100) -> np.ndarray:
+def _load_and_combine_all_candidates(data_path: str, start_candidate: int = 1,
+                                     num_to_process: int = 100) -> np.ndarray:
     """
     Load and combine the data of a particular gesture from all candidates.
 
     Args:
         data_path: Path to the folder containing the .pickle files of a particular gesture
         as performed with a particular hand
+        start_candidate: Number of first candidate to start processing at
         num_to_process: Number of candidates to (maximally) process
 
     Returns:
         Numpy array where each entry is an (m x 3 x 1) 'image'
     """
-    to_process = [f"candidate_{i}.pickle" for i in range (1, num_to_process + 1)]
+    to_process = [f"candidate_{i}.pickle" for i in range (start_candidate, start_candidate + num_to_process)]
     combined_data = np.empty((0, 100, 3), dtype=np.float32) # TODO: Make this more programmatic instead of hardcording data sizes
     for candidate in listdir(data_path):
         if candidate in to_process:
@@ -50,13 +52,14 @@ def _load_and_combine_all_candidates(data_path: str, num_to_process: int = 100) 
 
 
 def load_and_combine_data(raw_data_path: str = path.join("data", "processed_data"),
-                          num_to_process: int = 100) -> Tuple[np.ndarray, np.ndarray]:
+                          start_candidate: int = 1, num_to_process: int = 100) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Load the processed dataset, combining the left and right hand results across all
+    Load one of the project datasets, combining the left and right hand results across all
     candidates for each class.
 
     Args:
         raw_data_path: Root directory where data for each class is stored
+        start_candidate: Number of first candidate to start processing at
         num_to_process: Number of candidates to (maximally) process
 
     Returns:
@@ -70,9 +73,9 @@ def load_and_combine_data(raw_data_path: str = path.join("data", "processed_data
     for gesture_name in listdir(raw_data_path):
         # Load and combine left and right hand data
         left_hand_data_path = path.join(raw_data_path, gesture_name, "left_hand")
-        left_hand_data = _load_and_combine_all_candidates(left_hand_data_path, num_to_process)
+        left_hand_data = _load_and_combine_all_candidates(left_hand_data_path, start_candidate, num_to_process)
         right_hand_data_path = path.join(raw_data_path, gesture_name, "right_hand")
-        right_hand_data = _load_and_combine_all_candidates(right_hand_data_path, num_to_process)
+        right_hand_data = _load_and_combine_all_candidates(right_hand_data_path, start_candidate, num_to_process)
         combined_data = np.append(left_hand_data, right_hand_data, axis=0)
 
         # Extend features list and create corresponding label list entries
