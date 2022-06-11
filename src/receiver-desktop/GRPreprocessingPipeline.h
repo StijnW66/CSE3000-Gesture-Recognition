@@ -57,7 +57,7 @@ public:
             if (zero) {
                 trimmed = true;
                 gestureSignalLength--;
-            }
+            } else break;
         }
         if(trimmed) gestureSignalLength++;
 
@@ -73,7 +73,7 @@ public:
                 trimmed = true;
                 trimmedStart++;
                 gestureSignalLength--;
-            }
+            } else break;
         }
         if (trimmed) {
             trimmedStart--;
@@ -107,14 +107,14 @@ public:
             if (zero) {
                 trimmed = true;
                 gestureSignalLength--;
-            }
+            } else break;
         }
         if(trimmed) gestureSignalLength++;
 
         trimmed = false;
         trimmedStart = 0;
         prevGestureSignalLength = gestureSignalLength;
-        while(trimmedStart < gestureSignalLength) {
+        while(trimmedStart < prevGestureSignalLength) {
             bool zero = true;
             for (size_t di = 0; di < NUM_PDs; di++)
                 zero = zero && (photodiodeDataFFTFiltered[di][trimmedStart] == 0);
@@ -123,7 +123,7 @@ public:
                 trimmed = true;
                 trimmedStart++;
                 gestureSignalLength--;
-            }
+            } else break;
         }
         if (trimmed) {
             trimmedStart--;
