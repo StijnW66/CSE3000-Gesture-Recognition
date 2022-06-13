@@ -32,7 +32,7 @@ public:
         return output;
     }
 
-    void RunPipeline(uint16_t rawData[NUM_PDs][GESTURE_BUFFER_LENGTH], int gestureSignalLength, uint16_t thresholds[NUM_PDs])
+    void RunPipeline(uint16_t rawData[NUM_PDs][GESTURE_BUFFER_LENGTH], int gestureSignalLength, uint16_t thresholds[NUM_PDs], int samplingFrequncy)
     {
         for (size_t i = 0; i < NUM_PDs; i++)
         {
@@ -85,7 +85,7 @@ public:
         for (size_t i = 0; i < NUM_PDs; i++)
         {
             fftFilter[i].ZeroImag();
-            fftFilter[i].Filter(rawData[i] + trimmedStart, gestureSignalLength, 5, 1000 / READ_PERIOD);
+            fftFilter[i].Filter(rawData[i] + trimmedStart, gestureSignalLength, 5, samplingFrequncy);
             fftFilter[i].MoveDataToBufferF(photodiodeDataFFTFiltered[i]);
         }
  
