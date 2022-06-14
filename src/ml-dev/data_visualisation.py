@@ -10,7 +10,7 @@ def plot_data_as_image(feature: np.ndarray):
     ax.set_yticks([])
     ax.set_yticklabels([])
 
-    plt.imshow(feature.squeeze().transpose(), cmap='Greys_r')
+    plt.imshow(feature.squeeze().transpose(), cmap='Greys_r', aspect=10)
     plt.colorbar(orientation='horizontal', fraction=0.10, shrink=0.4)
     plt.show()
 
