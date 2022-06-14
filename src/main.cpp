@@ -1,17 +1,47 @@
+#include "Arduino.h"
+#include "diode_calibration/diode_calibration.h"
+#include "mbed.h"
+
 #include "receiver/receiver.hpp"
 #include "ml-arduino/main_arduino.hpp"
 
-// The name of this function is important for Arduino compatibility.
-void setup() {
-  tensorflowSetup();
-  receiverSetup();
+
+rtos::Thread plotter_thread;
+LightIntensityRegulator* regulator;
+
+void plotter() {
+  while(1) {
+    int r0 = analogRead(A0);
+    int r1 = analogRead(A1);
+    int r2 = analogRead(A2);
+
+    Serial.print(r0);
+    Serial.print(", ");
+    Serial.print(r1);
+    Serial.print(", ");
+    Serial.println(r2);
+    delay(10);
+  }
 }
 
-// The name of this function is important for Arduino compatibility.
-void loop() {
-  receiverLoop();
+void setup() {
+  Serial.begin(9600);
+  //while(!Serial);
 
-  // TODO: Remove
-  // printTensorDimensionsToSerial();
-  // printDummyDataInferenceResults();
+  // Start visualization thread. Comment out if no visualization/data_collection is required
+  plotter_thread.start(plotter);
+
+  // Setup the lightintensity regulator.
+  regulator = new LightIntensityRegulator();
+
+  //tensorflowSetup();
+  //receiverSetup();
+}
+
+
+void loop() {
+ 
+
+  //receiverLoop();
+
 }
