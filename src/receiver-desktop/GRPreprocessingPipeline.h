@@ -18,6 +18,7 @@ using namespace std;
 class GRPreprocessingPipeline {
 
 private:
+    uint16_t trimmedData[NUM_PDs][GESTURE_BUFFER_LENGTH];
     float photodiodeDataFFTFiltered[NUM_PDs][FFT_SIGNAL_LENGTH];
     float (* normPhotodiodeData)[FFT_SIGNAL_LENGTH];
     float output[NUM_PDs][ML_DATA_LENGTH];
@@ -32,23 +33,137 @@ public:
         return output;
     }
 
-    void RunPipeline(uint16_t rawData[NUM_PDs][GESTURE_BUFFER_LENGTH], int gestureSignalLength, uint16_t thresholds[NUM_PDs], int samplingFrequncy)
+    void FindThresholdUsingLower(
+        uint16_t rawData[NUM_PDs][GESTURE_BUFFER_LENGTH], 
+        uint16_t outData[NUM_PDs][GESTURE_BUFFER_LENGTH], 
+        int gestureSignalLength, uint16_t thresholds[NUM_PDs], int threshWindow = 5, bool trimUpper = true) {
+        
+        for (size_t i = 0; i < NUM_PDs; i++)
+        {
+            thresholds[i] = 0;
+        }
+
+        // Find the lower stable signal - either on the right or on the left
+        uint16_t stableLeft[NUM_PDs], stableRight[NUM_PDs];
+
+        for (size_t di = 0; di < NUM_PDs; di++)
+        {
+            stableLeft[di] = 0;
+            stableRight[di] = 0;
+
+            for (size_t i = 0; i < threshWindow; i++)
+            {
+                stableLeft[di] += rawData[di][i];
+                stableRight[di] += rawData[di][gestureSignalLength - 1 - i];
+            }
+
+            stableLeft[di] /= threshWindow;
+            stableRight[di] /= threshWindow;
+        }
+        
+        // Set the thresholds
+        for (size_t di = 0; di < NUM_PDs; di++) {
+            thresholds[di] = min(stableLeft[di], stableRight[di]);
+        }
+
+        int newStart[3];
+        int newEnd[3];
+
+        for (size_t i = 0; i < NUM_PDs; i++)
+        {
+            newStart[i] = 0;
+            newEnd[i] = gestureSignalLength - 1;
+
+            // If requested, trim the upper end of the signal to the threshold
+            if(trimUpper) {
+                while(rawData[i][newStart[i]] > thresholds[i]) {
+                    newStart[i]++;
+                }
+
+                while(rawData[i][newEnd[i]] > thresholds[i]) {
+                    newEnd[i]--;
+                }
+            }
+
+            for (size_t index = 0; index < newEnd - newStart + 1; index++)
+            {
+                outData[i][index] = rawData[i][newStart[i] + index];
+            }
+        }
+    }
+
+    void FindThresholdUsingMean(
+        uint16_t rawData[NUM_PDs][GESTURE_BUFFER_LENGTH], 
+        uint16_t outData[NUM_PDs][GESTURE_BUFFER_LENGTH], 
+        int gestureSignalLength, uint16_t thresholds[NUM_PDs], int threshWindow = 5, bool trimUpper = true) {
+        
+        for (size_t i = 0; i < NUM_PDs; i++)
+        {
+            thresholds[i] = 0;
+        }
+
+        // Find the lower stable signal - either on the right or on the left
+        uint16_t stableLeft[NUM_PDs], stableRight[NUM_PDs];
+
+        for (size_t di = 0; di < NUM_PDs; di++)
+        {
+            stableLeft[di] = 0;
+            stableRight[di] = 0;
+
+            for (size_t i = 0; i < threshWindow; i++)
+            {
+                stableLeft[di] += rawData[di][i];
+                stableRight[di] += rawData[di][gestureSignalLength - 1 - i];
+            }
+
+            stableLeft[di] /= threshWindow;
+            stableRight[di] /= threshWindow;
+        }
+        
+        // Set the thresholds
+        for (size_t di = 0; di < NUM_PDs; di++) {
+            thresholds[di] = (stableLeft[di] + stableRight[di])/2;
+        }
+
+        int newStart[3];
+        int newEnd[3];
+
+        for (size_t i = 0; i < NUM_PDs; i++)
+        {
+            newStart[i] = 0;
+            newEnd[i] = gestureSignalLength - 1;
+
+            // If requested, trim the upper end of the signal to the threshold
+            if(trimUpper) {
+                while(rawData[i][newStart[i]] > thresholds[i]) {
+                    newStart[i]++;
+                }
+
+                while(rawData[i][newEnd[i]] > thresholds[i]) {
+                    newEnd[i]--;
+                }
+            }
+
+            for (size_t index = 0; index < newEnd - newStart + 1; index++)
+            {
+                outData[i][index] = rawData[i][newStart[i] + index];
+            }
+        }
+    }
+
+    void RunPipeline(
+        uint16_t rawData[NUM_PDs][GESTURE_BUFFER_LENGTH], 
+        int gestureSignalLength, 
+        uint16_t thresholds[NUM_PDs], 
+        int samplingFrequncy, int thresholdScheme = 0, bool trimUpper = true)
     {
-
-        // // compute stable start and end
-        // uint16_t threshold[NUM_PDs];
-        // for (size_t i = 0; i < NUM_PDs; i++)
-        // {
-        //     thresholds[i] = 0;
-        // }
-
-        // FOR(di, i, NUM_PDs, 5, thresholds[di] += rawData[i])
-        // FOR(di, i, NUM_PDs, 5, thresholds[di] += rawData[gestureSignalLength - 1 - i])
-
-        // for (size_t i = 0; i < NUM_PDs; i++)
-        // {
-        //     thresholds[i] /= 10;
-        // }
+        if (thresholdScheme == 1) {
+            FindThresholdUsingLower(rawData, trimmedData, gestureSignalLength, thresholds, trimUpper);
+            rawData = trimmedData;
+        } else if (thresholdScheme == 2) {
+            FindThresholdUsingMean(rawData, trimmedData, gestureSignalLength, thresholds, trimUpper);
+            rawData = trimmedData;
+        }
 
         for (size_t i = 0; i < NUM_PDs; i++)
         {
