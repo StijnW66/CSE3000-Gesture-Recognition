@@ -1,3 +1,5 @@
+import os
+
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QApplication, QMainWindow, QAction, QPushButton, QScrollArea, QWidget, QVBoxLayout, \
     QCheckBox, QComboBox
@@ -38,21 +40,18 @@ class ReadLine:
 class MyWindow(QMainWindow):
     def __init__(self):
         super(MyWindow,self).__init__()
+
+        self.candidate_no = 49
+
         self.base_paths = []
         for filename in glob.iglob("./src/data_collection/data" + '**/**/*_hand', recursive=True):
             self.base_paths.append(filename)
-
-        self.base_path = "./src/data_collection/data/clockwise/right_hand"
-
-
+        self.base_path = self.base_paths[0]
 
         self.initUI()
         self.data = []
         self.chosen_hand = "right_hand"
         self.count = 0
-
-
-
         self.accept_data = True
 
     def button_clicked(self):
@@ -79,7 +78,8 @@ class MyWindow(QMainWindow):
                 if checkbox.isChecked():
                     pickle.dump(data, file)
 
-        with open(self.path_move, "wb") as file:
+        with open(self.path_move, "ab") as file:
+            print("MOVING TO: ", self.path_move)
             for data, checkbox in zip(self.unpickled, self.checkboxes):
                 if not checkbox.isChecked():
                     pickle.dump(data, file)
@@ -99,18 +99,46 @@ class MyWindow(QMainWindow):
         print("cleared UI")
         self.addUI()
 
+    def checkProblematicFiles(self):
+        print("REVIEWING ALL PATHS")
+        for base_path in self.base_paths:
+            print(base_path)
+            path_checking = f"{base_path}/candidate_{self.candidate_no}.pickle"
+            with open(path_checking, 'rb') as f:
+                unpickled = []
+                while True:
+                    try:
+                        unpickled.append(pickle.load(f))
+                    except EOFError:
+                        break
+            file_len = len(unpickled)
+            if file_len != 5:
+                print(f"PROBLEMATIC FILE: {file_len}: {path_checking}")
+
+        print("DONE REVIEWING PATHS")
+
     def addUI(self):
         print("adding UI")
-        self.path = f"{self.base_path}/candidate_9.pickle"
-        self.path_move = f"{self.base_path}/candidate_10.pickle"
+
+        self.path = f"{self.base_path}/candidate_{self.candidate_no}.pickle"
+        # self.path_move = f"{self.base_path}/candidate_00.pickle"
+        self.base_path_move = f"./src/data_collection\data/clockwise/left_hand"
+        self.path_move = f"{self.base_path}/candidate_{self.candidate_no}.pickle"
+        # self.path_move = f"{self.base_path_move}/candidate_{self.candidate_no + 1}.pickle"
+
+
         print(self.path)
         self.vbox.addWidget(self.cb)
         self.vbox.addWidget(self.b)
         self.vbox.addWidget(self.b2)
+        self.vbox.addWidget(self.b3)
         self.buttons = []
         self.checkboxes = []
         index = 0
         print("added buttons")
+
+        # with open(self.path_move, 'ab+') as f:
+        #     pass
         with open(self.path, 'rb') as f:
             self.unpickled = []
             while True:
@@ -172,6 +200,10 @@ class MyWindow(QMainWindow):
         self.b2.setText("MOVE FILE")
         self.b2.clicked.connect(self.move_file)
 
+        self.b3 = QPushButton(self)
+        self.b3.setText("Find Problematic Files")
+        self.b3.clicked.connect(self.checkProblematicFiles)
+
 
         self.widget.setLayout(self.vbox)
 
@@ -183,7 +215,7 @@ class MyWindow(QMainWindow):
 
         self.setCentralWidget(self.scroll)
 
-        self.setGeometry(600, 100, 1000, 900)
+        self.setGeometry(100, 100, 1000, 900)
         self.setWindowTitle('Scroll Area Demonstration')
         self.show()
 
