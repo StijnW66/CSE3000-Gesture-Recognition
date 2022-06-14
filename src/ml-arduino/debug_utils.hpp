@@ -40,4 +40,23 @@ void printDummyDataInferenceResults() {
   Serial.println(inference_results_str);
 }
 
+/**
+ * Print the average time taken to run an inference on a fixed sample
+ * 
+ * @param resolution The number of inferences to execute and base the average on
+ * 
+ */
+void printTimeInference(uint32_t resolution) {
+  unsigned long startTime = micros();
+  for (uint32_t iteration = 0; iteration < resolution; iteration++) {inferGesture2d(ROT_CLOCKWISE_DUMMY_0);}
+  unsigned long endTime = micros();
+  unsigned long singleInferenceTime = (endTime - startTime) / resolution;
+  
+  char inferenceTimeStr[96];
+  sprintf(inferenceTimeStr, "Time for single inference (based on %u samples): %u",
+    resolution,
+    endTime - startTime);
+  Serial.println(inferenceTimeStr);
+}
+
 #endif
