@@ -1,5 +1,6 @@
 # DATA
 *.pickle
+*.txt
 
 # IDE
 *.vscode
