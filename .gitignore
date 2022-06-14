@@ -36,3 +36,18 @@
 *.exe
 *.out
 *.app
+
+# Datasets
+data
+
+# Python blobs
+__pycache__
+venv
+
+# Tensorflow output
+*.tflite
+
+# Image files (VisualKeras output)
+*.png
+*.jpeg
+*.jpg
