@@ -35,22 +35,20 @@ public:
     void RunPipeline(uint16_t rawData[NUM_PDs][GESTURE_BUFFER_LENGTH], int gestureSignalLength, uint16_t thresholds[NUM_PDs], int samplingFrequncy)
     {
 
-        // compute stable start and end
-        uint16_t threshold[NUM_PDs];
-        for (size_t i = 0; i < NUM_PDs; i++)
-        {
-            thresholds[i] = 0;
-        }
+        // // compute stable start and end
+        // uint16_t threshold[NUM_PDs];
+        // for (size_t i = 0; i < NUM_PDs; i++)
+        // {
+        //     thresholds[i] = 0;
+        // }
 
-        FOR(di, i, NUM_PDs, 5, thresholds[di] += rawData[i])
-        FOR(di, i, NUM_PDs, 5, thresholds[di] += rawData[gestureSignalLength - 1 - i])
+        // FOR(di, i, NUM_PDs, 5, thresholds[di] += rawData[i])
+        // FOR(di, i, NUM_PDs, 5, thresholds[di] += rawData[gestureSignalLength - 1 - i])
 
-        for (size_t i = 0; i < NUM_PDs; i++)
-        {
-            thresholds[i] /= 10;
-        }
-
-        
+        // for (size_t i = 0; i < NUM_PDs; i++)
+        // {
+        //     thresholds[i] /= 10;
+        // }
 
         for (size_t i = 0; i < NUM_PDs; i++)
         {
