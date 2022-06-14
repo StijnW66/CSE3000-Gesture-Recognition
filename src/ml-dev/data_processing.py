@@ -2,6 +2,7 @@ from typing import Iterable, List, Tuple
 from scipy.io import arff
 from os import listdir, path
 from sklearn.model_selection import train_test_split
+from skimage.measure import block_reduce
 import tensorflow as tf
 import numpy as np
 import pandas as pd
@@ -27,8 +28,10 @@ def _load_all_pickled_data(file_path) -> List:
                 return data
 
 
-def _load_and_combine_all_candidates(data_path: str, start_candidate: int = 1,
-                                     num_to_process: int = 100) -> np.ndarray:
+def _load_and_combine_all_candidates(data_path: str,
+                                     start_candidate: int = 1,
+                                     num_to_process: int = 100,
+                                     sample_length: int = 100) -> np.ndarray:
     """
     Load and combine the data of a particular gesture from all candidates.
 
@@ -36,13 +39,14 @@ def _load_and_combine_all_candidates(data_path: str, start_candidate: int = 1,
         data_path: Path to the folder containing the .pickle files of a particular gesture
         as performed with a particular hand
         start_candidate: Number of first candidate to start processing at
-        num_to_process: Number of candidates to (maximally) process
+        num_to_process: Number of candidates to (maximally) 
+        sample_length: Number of samples to expect per photodiode
 
     Returns:
         Numpy array where each entry is an (m x 3 x 1) 'image'
     """
     to_process = [f"candidate_{i}.pickle" for i in range (start_candidate, start_candidate + num_to_process)]
-    combined_data = np.empty((0, 100, 3), dtype=np.float32) # TODO: Make this more programmatic instead of hardcording data sizes
+    combined_data = np.empty((0, sample_length, 3), dtype=np.float32) # TODO: Make this more programmatic instead of hardcording data sizes
     for candidate in listdir(data_path):
         if candidate in to_process:
             file_name = path.join(data_path, candidate)
@@ -52,7 +56,8 @@ def _load_and_combine_all_candidates(data_path: str, start_candidate: int = 1,
 
 
 def load_and_combine_data(raw_data_path: str = path.join("data", "processed_data"),
-                          start_candidate: int = 1, num_to_process: int = 100) -> Tuple[np.ndarray, np.ndarray]:
+                          start_candidate: int = 1, num_to_process: int = 100,
+                          sample_length: int = 100) -> Tuple[np.ndarray, np.ndarray]:
     """
     Load one of the project datasets, combining the left and right hand results across all
     candidates for each class.
@@ -61,6 +66,7 @@ def load_and_combine_data(raw_data_path: str = path.join("data", "processed_data
         raw_data_path: Root directory where data for each class is stored
         start_candidate: Number of first candidate to start processing at
         num_to_process: Number of candidates to (maximally) process
+        sample_length: Number of samples to expect per photodiode
 
     Returns:
         features: Numpy array where each entry is an (m x 3 x 1) 'image'
@@ -73,9 +79,9 @@ def load_and_combine_data(raw_data_path: str = path.join("data", "processed_data
     for gesture_name in listdir(raw_data_path):
         # Load and combine left and right hand data
         left_hand_data_path = path.join(raw_data_path, gesture_name, "left_hand")
-        left_hand_data = _load_and_combine_all_candidates(left_hand_data_path, start_candidate, num_to_process)
+        left_hand_data = _load_and_combine_all_candidates(left_hand_data_path, start_candidate, num_to_process, sample_length)
         right_hand_data_path = path.join(raw_data_path, gesture_name, "right_hand")
-        right_hand_data = _load_and_combine_all_candidates(right_hand_data_path, start_candidate, num_to_process)
+        right_hand_data = _load_and_combine_all_candidates(right_hand_data_path, start_candidate, num_to_process, sample_length)
         combined_data = np.append(left_hand_data, right_hand_data, axis=0)
 
         # Extend features list and create corresponding label list entries
@@ -186,11 +192,15 @@ def print_feature_label_pair(features: Iterable, labels: np.ndarray, idx: int):
 
 if __name__ == "__main__":
     print("===== PROCESSED DATASET =====")
-    features, labels = load_and_combine_data(num_to_process=29)
+    features, labels = load_and_combine_data()
     print("Feature data shape: ", features.shape)
     print("Labels data shape: ", labels.shape)
 
     print("===== RAW DATASET =====")
-    features, labels = load_and_combine_data(path.join("data", "raw_data"), num_to_process=29)
+    features_20_hz, labels_20_hz = load_and_combine_data(path.join("data", "processed_data"), num_to_process=29)
+    features_100_hz, labels_100_hz = load_and_combine_data(path.join("data", "processed_data"), start_candidate=30, sample_length=500)
+    features_100_hz = block_reduce(features_100_hz, block_size=(1, 5, 1, 1), func=np.mean)
+    features = np.append(features_20_hz, features_100_hz, axis=0)
+    labels = np.append(labels_20_hz, labels_100_hz, axis=0)
     print("Feature data shape: ", features.shape)
     print("Labels data shape: ", labels.shape)
