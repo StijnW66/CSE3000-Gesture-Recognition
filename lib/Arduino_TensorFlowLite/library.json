@@ -1,0 +1,21 @@
+{
+	"name": "Arduino_TensorFlowLite",
+	"description": "Allows you to run machine learning models locally on your device.",
+	"version": "2.4.0",
+	"repository":
+	{
+		"type": "git",
+		"url": "https://github.com/<todo>.git"
+	},
+	"authors":
+	{
+		"name": "Pete Warden",
+		"email": "petewarden@google.com"
+	},
+	"homepage": "https://www.tensorflow.org/lite/microcontrollers/overview",
+	"frameworks": "arduino",
+	"platforms":"nordicnrf52",
+	"build" : {
+		"libArchive":true
+	}
+}

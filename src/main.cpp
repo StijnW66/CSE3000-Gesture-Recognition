@@ -1,17 +1,17 @@
-#include <Arduino.h>
+#include "receiver/receiver.hpp"
+#include "ml-arduino/main_arduino.hpp"
 
+// The name of this function is important for Arduino compatibility.
 void setup() {
-  // Initialise the serial port
-  Serial.begin(19200);
-  Serial1.begin(19200);
-  pinMode(A0, INPUT);
-  pinMode(A1, INPUT);
-  pinMode(A2, INPUT);
+  tensorflowSetup();
+  receiverSetup();
 }
 
+// The name of this function is important for Arduino compatibility.
 void loop() {
-  Serial.println((String)analogRead(A0) + "  " + analogRead(A1) + "  " + analogRead(A2));
-  Serial1.println((String)analogRead(A0) + "  " + analogRead(A1) + "  " + analogRead(A2));
-  delay(50);
+  receiverLoop();
 
+  // TODO: Remove
+  // printTensorDimensionsToSerial();
+  // printDummyDataInferenceResults();
 }

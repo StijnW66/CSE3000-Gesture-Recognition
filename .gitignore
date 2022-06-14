@@ -39,3 +39,11 @@
 *.exe
 *.out
 *.app
+
+# Python blobs
+__pycache__
+venv
+wsl-venv
+
+# Tensorflow output
+*.tflite
