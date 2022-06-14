@@ -10,37 +10,38 @@ rtos::Thread plotter_thread;
 LightIntensityRegulator* regulator;
 
 void plotter() {
-  int r0 = analogRead(A0);
-  int r1 = analogRead(A1);
-  int r2 = analogRead(A2);
+  while(1) {
+    int r0 = analogRead(A0);
+    int r1 = analogRead(A1);
+    int r2 = analogRead(A2);
 
-  Serial.print(r0);
-  Serial.print(", ");
-  Serial.print(r1);
-  Serial.print(", ");
-  Serial.println(r2);
-  delay(10);
-  
+    Serial.print(r0);
+    Serial.print(", ");
+    Serial.print(r1);
+    Serial.print(", ");
+    Serial.println(r2);
+    delay(10);
+  }
 }
 
 void setup() {
   Serial.begin(9600);
   //while(!Serial);
 
-  // Start visualization thread
+  // Start visualization thread. Comment out if no visualization/data_collection is required
   plotter_thread.start(plotter);
 
   // Setup the lightintensity regulator.
   regulator = new LightIntensityRegulator();
 
-  tensorflowSetup();
-  receiverSetup();
+  //tensorflowSetup();
+  //receiverSetup();
 }
 
 
 void loop() {
  
 
-  receiverLoop();
+  //receiverLoop();
 
 }
