@@ -1,0 +1,8 @@
+# Blob directories
+data
+results
+
+# Image files (bisual output)
+*.png
+*.jpeg
+*.jpg

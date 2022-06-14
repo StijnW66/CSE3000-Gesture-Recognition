@@ -1,0 +1,13 @@
+matplotlib==3.5.2
+numpy==1.22.3
+pandas==1.4.2
+Pillow==9.1.1
+pyserial==3.5
+rich==12.4.4
+scikit_image==0.19.3
+scikit_learn==1.1.1
+scipy==1.8.0
+skimage==0.0
+tensorflow==2.8.0
+tensorflow_model_optimization==0.7.2
+visualkeras==0.0.2

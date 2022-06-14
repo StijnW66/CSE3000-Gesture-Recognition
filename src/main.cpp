@@ -2,36 +2,14 @@
 #include "diode_calibration/diode_calibration.h"
 #include "mbed.h"
 
+#include "receiver/receiver.hpp"
+#include "ml-arduino/main_arduino.hpp"
 
-rtos::Thread calibration_thread;
+
+rtos::Thread plotter_thread;
 LightIntensityRegulator* regulator;
 
-void calibrate_diode_setup() {
-  regulator = new LightIntensityRegulator();
-
-  /**
-  while (regulator->resistorDown()) {
-    delay(1000);
-  }
-
-  while (regulator->resistorUp()) {
-    delay(1000);
-  }
-
-  digitalWrite(22, LOW);
-  **/
-
-  
-}
-
-void setup() {
-  Serial.begin(9600);
-  while(!Serial);
-  calibration_thread.start(calibrate_diode_setup); // Should not be done multithreaded but is good for keeping the visualization.
-}
-
-
-void loop() {
+void plotter() {
   int r0 = analogRead(A0);
   int r1 = analogRead(A1);
   int r2 = analogRead(A2);
@@ -42,4 +20,27 @@ void loop() {
   Serial.print(", ");
   Serial.println(r2);
   delay(10);
+  
+}
+
+void setup() {
+  Serial.begin(9600);
+  //while(!Serial);
+
+  // Start visualization thread
+  plotter_thread.start(plotter);
+
+  // Setup the lightintensity regulator.
+  regulator = new LightIntensityRegulator();
+
+  tensorflowSetup();
+  receiverSetup();
+}
+
+
+void loop() {
+ 
+
+  receiverLoop();
+
 }
