@@ -83,7 +83,9 @@ void receiverLoopMain() {
     // Try to detect a start on one of the photodiodes
     if (detectionWindowFull && startEdgeDetected) {
 
-        Serial.println("Gesture started");
+        #ifdef DEBUG_RECEIVER 
+            Serial.println("Gesture started");
+        #endif
 
         bool endDetected = false;
 
@@ -119,7 +121,11 @@ void receiverLoopMain() {
 
                 // Reject gestures that took too short time
                 if (gestureSignalLength < GESTURE_MIN_TIME_MS / READ_PERIOD + 1) {
-                    Serial.println("Gesture took too little time! Rejecting and starting over ...");
+                    
+                    #ifdef DEBUG_RECEIVER 
+                        Serial.println("Gesture took too little time! Rejecting and starting over ...");
+                    #endif
+                    
                     break;
                 }
                 else endDetected = true;
@@ -138,7 +144,7 @@ void receiverLoopMain() {
                 float (* output)[100] = pipeline.getPipelineOutput();
 
                 Gesture g =  inferGesture2d(output);
-                
+                 
                 Serial.print("Gesture: ");
                 Serial.println(g);
 
@@ -184,12 +190,4 @@ void receiverSetup() {
 
 void receiverLoop() {
   timer.run();
-
-    // Serial.print(analogRead(PD1));
-    // Serial.print(" "); 
-    // Serial.print(analogRead(PD2));
-    // Serial.print(" ");
-    // Serial.println(analogRead(PD3));
-
-    // delay(READ_PERIOD);
 }

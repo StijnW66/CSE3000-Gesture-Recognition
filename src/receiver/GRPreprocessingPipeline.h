@@ -35,8 +35,10 @@ public:
     void RunPipeline(uint16_t rawData[NUM_PDs][GESTURE_BUFFER_LENGTH], int gestureSignalLength, uint16_t thresholds[NUM_PDs])
     {
         // ----------------------------------------
-        Serial.println("Cutting off, Flipping and Trimming");
-        
+        #ifdef DEBUG_RECEIVER 
+            Serial.println("Cutting off, Flipping and Trimming");
+        #endif
+
         FOR(di, i, NUM_PDs, gestureSignalLength, 
             rawData[di][i] = max(0, thresholds[di] * CUTT_OFF_THRESHOLD_COEFF_PRE_FFT - rawData[di][i])
         );
@@ -57,10 +59,14 @@ public:
         }
         if(trimmed) gestureSignalLength++;
 
-        sendSignal(rawData, gestureSignalLength);
-        
+        #ifdef PLOT_RECEIVER
+            sendSignal(rawData, gestureSignalLength);
+        #endif
+
         // ----------------------------------------
-        Serial.println("FFT Filtering");
+        #ifdef DEBUG_RECEIVER
+            Serial.println("FFT Filtering");
+        #endif
 
         // Filter using FFT
         for (size_t i = 0; i < NUM_PDs; i++)
@@ -76,21 +82,29 @@ public:
             photodiodeDataFFTFiltered[di][i] = max(0, photodiodeDataFFTFiltered[di][i] - thresholds[di] * CUTT_OFF_THRESHOLD_COEFF_POST_FFT);
         );
         
-        sendSignal(photodiodeDataFFTFiltered, FFT_SIGNAL_LENGTH);
+        #ifdef PLOT_RECEIVER
+            sendSignal(photodiodeDataFFTFiltered, FFT_SIGNAL_LENGTH);
+        #endif
 
         normPhotodiodeData = photodiodeDataFFTFiltered;
 
         // ----------------------------------------
-        Serial.println("Normalising ...");
+        #ifdef DEBUG_RECEIVER
+            Serial.println("Normalising ...");
+        #endif
 
         // Normalize dividing by the max
         for (size_t i = 0; i < NUM_PDs; i++)
             maxNormaliser.Normalise(normPhotodiodeData[i], gestureSignalLength);
 
-        sendSignal(normPhotodiodeData, gestureSignalLength);   
+        #ifdef PLOT_RECEIVER
+            sendSignal(normPhotodiodeData, gestureSignalLength);
+        #endif   
 
         // -----------------------------------------
-        Serial.println("Stretching ...");
+        #ifdef DEBUG_RECEIVER
+            Serial.println("Stretching ...");
+        #endif
 
         for (size_t i = 0; i < NUM_PDs; i++) {
             sstretch.StretchSignal(
@@ -106,8 +120,12 @@ public:
                 0.0f,1.0f);
         }
         
-        sendSignal(output, ML_DATA_LENGTH);   
+        #ifdef PLOT_RECEIVER
+            sendSignal(output, ML_DATA_LENGTH);
+        #endif   
 
-        Serial.println("Pipeline Done");
+        #ifdef DEBUG_RECEIVER
+            Serial.println("Pipeline Done");
+        #endif
     }
 };

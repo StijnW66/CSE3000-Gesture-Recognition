@@ -51,4 +51,7 @@ uint8_t pds[NUM_PDs] = {
     PD1
 };
 
+// #define DEBUG_RECEIVER
+// #define PLOT_RECEIVER
+
 #endif
