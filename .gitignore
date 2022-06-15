@@ -2,6 +2,7 @@
 *.pickle
 *.txt
 data/
+main
 
 # IDE
 *.vscode
