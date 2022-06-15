@@ -41,11 +41,14 @@ class MyWindow(QMainWindow):
     def __init__(self):
         super(MyWindow,self).__init__()
 
-        self.candidate_no = 49
+        self.candidate_no = 34
 
         self.base_paths = []
-        for filename in glob.iglob("./src/data_collection/data" + '**/**/*_hand', recursive=True):
+        for filename in glob.iglob("./reformatted/post_process/src/data_collection/data" + '**/**/*_hand', recursive=True):
             self.base_paths.append(filename)
+
+        # for filename in glob.iglob("./src/data_collection/data" + '**/**/*_hand', recursive=True):
+        #     self.base_paths.append(filename)
         self.base_path = self.base_paths[0]
 
         self.initUI()
