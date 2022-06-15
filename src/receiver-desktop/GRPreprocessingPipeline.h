@@ -222,6 +222,7 @@ public:
         for (size_t i = 0; i < NUM_PDs; i++)
         {
             thresholds[i] = thresholds[i] * CUTT_OFF_THRESHOLD_COEFF;
+            cout << "Flattening threshold " << i << " " << thresholds[i] << "\n";
         }
 
         // ----------------------------------------
@@ -234,7 +235,7 @@ public:
         bool trimmed = false;
         int trimCount = 0;
         int i = gestureSignalLength;
-        while(i-- >= 0 && trimCount++ < DETECTION_END_WINDOW_LENGTH * DETECTION_END_WINDOW_TRIM) {
+        while(i-- >= 0) {
             bool zero = true;
             for (size_t di = 0; di < NUM_PDs; di++)
                 zero = zero && (rawData[di][i] == 0);
