@@ -1,5 +1,9 @@
 #include<inttypes.h>
 
+/**
+ * @brief A class abstracting the reading of sensors and storing their input.
+ * 
+ */
 class GRDiodeReader {
 
     public:

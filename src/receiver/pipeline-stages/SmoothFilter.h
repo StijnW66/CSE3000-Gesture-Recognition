@@ -1,6 +1,10 @@
 #include<vector>
 #include<Arduino.h>
 
+/**
+ * @brief A class that implements convolution with a smoothing/averaging filter with provided weights.
+ * 
+ */
 class SmoothFilter {
 
     public:

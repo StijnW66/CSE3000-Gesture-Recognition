@@ -1,5 +1,10 @@
 #include<inttypes.h>
 
+/**
+ * @brief A class implementing edge detection for gesture signals. Determines start and end point
+ *          provided a threshold.
+ * 
+ */
 class GREdgeDetector {
 
     private: 

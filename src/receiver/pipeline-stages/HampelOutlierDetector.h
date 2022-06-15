@@ -5,6 +5,10 @@
 #include<algorithm>
 #include<QuickMedianLib.h>
 
+/**
+ * @brief A class implementin Hampel Identifier scheme for outlier detection and removal.
+ * 
+ */
 class HampelOutlierDetector {
 
     private:

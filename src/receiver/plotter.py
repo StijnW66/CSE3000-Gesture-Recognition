@@ -2,6 +2,18 @@ import serial
 import numpy as np
 import matplotlib.pyplot as plt
 
+"""
+    This Python script is used in combination with the receiver pipeline code running on an Arduino.
+    It expects to be provided a set of signals representing gesture data and how it is processed 
+    by the different pipeline stages from raw to final output.
+
+    1. Connects to the serial port
+    2. Awaits data
+    3. Reads signal data between the messages "Start" and "Done".
+    4. Reads a fixed amount of signals before plotting it and displaying it.
+    5. Goes back to step 2.
+"""
+
 ser = serial.Serial('/dev/ttyACM0')
 
 print(ser.name)
