@@ -36,7 +36,7 @@ int main(int argc, char * argv[]) {
     inFile.close();
 
     GRPreprocessingPipeline pipe;
-    pipe.RunPipeline(rawData, gestureSignalLength, thresholds, 100);
+    pipe.RunPipeline(rawData, gestureSignalLength, thresholds, 100, 1);
     output = pipe.getPipelineOutput();
 
     std::cout << "Pipeline Done\n";

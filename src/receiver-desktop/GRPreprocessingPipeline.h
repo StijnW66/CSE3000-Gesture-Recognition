@@ -2,6 +2,7 @@
 #include <initializer_list>
 #include <vector>
 #include <cmath>
+#include <iostream>
 
 #include "pipeline-stages/MaxNormaliser.h"
 // #include "pipeline-stages/HampelOutlierDetector.h"
@@ -18,6 +19,8 @@ using namespace std;
 class GRPreprocessingPipeline {
 
 private:
+    // Used when you want to compute a threshold from the input data itself
+    // and then trim additionally beforehand
     uint16_t trimmedData[NUM_PDs][GESTURE_BUFFER_LENGTH];
     float photodiodeDataFFTFiltered[NUM_PDs][FFT_SIGNAL_LENGTH];
     float (* normPhotodiodeData)[FFT_SIGNAL_LENGTH];
@@ -29,10 +32,28 @@ private:
     FFTCutOffFilter fftFilter[NUM_PDs];
 
 public:
+    /**
+     * Get a pointer to the inner buffer holding the last processed data 
+     */
     auto getPipelineOutput() {
         return output;
     }
 
+    /**
+     * Computes a threshold for the signal using samples from the left and the right.
+     * Finds the means of 2 windows of samples - one on the left and one on the right.
+     * Then uses the smaller one as the threshold.
+     * Optionally trims both sides of the signal up to the first sample at least as 
+     * small as the threshold.
+     * This is done per photodiode signal.
+     * 
+     * The final output is in `outData` and the computed thresholds are in `thresholds` 
+     * after the function exits.
+     * 
+     * threshWindow - size of sample window used on each side to compute the mean of the data on that side 
+     * trimUpper    - indicates whether to trim the data using the computed threshold
+     * 
+     */
     void FindThresholdUsingLower(
         uint16_t rawData[NUM_PDs][GESTURE_BUFFER_LENGTH], 
         uint16_t outData[NUM_PDs][GESTURE_BUFFER_LENGTH], 
@@ -61,7 +82,7 @@ public:
             stableRight[di] /= threshWindow;
         }
         
-        // Set the thresholds
+        // Set the thresholds - smaller
         for (size_t di = 0; di < NUM_PDs; di++) {
             thresholds[di] = min(stableLeft[di], stableRight[di]);
         }
@@ -74,7 +95,7 @@ public:
             newStart[i] = 0;
             newEnd[i] = gestureSignalLength - 1;
 
-            // If requested, trim the upper end of the signal to the threshold
+            // If requested, trim both ends of the signal up to the first sample as small as the threshold
             if(trimUpper) {
                 while(rawData[i][newStart[i]] > thresholds[i]) {
                     newStart[i]++;
@@ -92,6 +113,21 @@ public:
         }
     }
 
+    /**
+     * Computes a threshold for the signal using samples from the left and the right.
+     * Finds the means of 2 windows of samples - one on the left and one on the right.
+     * Then uses the average of the 2 as the threshold.
+     * Optionally trims both sides of the signal up to the first sample at least as 
+     * small as the threshold.
+     * This is done per photodiode signal.
+     * 
+     * The final output is in `outData` and the computed thresholds are in `thresholds` 
+     * after the function exits.
+     * 
+     * threshWindow - size of sample window used on each side to compute the mean of the data on that side 
+     * trimUpper    - indicates whether to trim the data using the computed threshold
+     * 
+     */
     void FindThresholdUsingMean(
         uint16_t rawData[NUM_PDs][GESTURE_BUFFER_LENGTH], 
         uint16_t outData[NUM_PDs][GESTURE_BUFFER_LENGTH], 
@@ -120,7 +156,7 @@ public:
             stableRight[di] /= threshWindow;
         }
         
-        // Set the thresholds
+        // Set the thresholds - mean
         for (size_t di = 0; di < NUM_PDs; di++) {
             thresholds[di] = (stableLeft[di] + stableRight[di])/2;
         }
@@ -133,7 +169,7 @@ public:
             newStart[i] = 0;
             newEnd[i] = gestureSignalLength - 1;
 
-            // If requested, trim the upper end of the signal to the threshold
+            // If requested, trim both ends of the signal up to the first sample as small as the threshold
             if(trimUpper) {
                 while(rawData[i][newStart[i]] > thresholds[i]) {
                     newStart[i]++;
@@ -151,6 +187,20 @@ public:
         }
     }
 
+    /**
+     * @brief Runs the desktop receiver's preprocessing pipeline on \p rawData , performing
+     *      flattening, cutting-off, FFT low-pass filtering, second cutting-off, 
+     *      normalisation and finally time-stretching. The final result is saved 
+     *      in an inner buffer and must be explicitly requested with getPipelineOutput().
+     * 
+     * @see getPipelineOutput()
+     * @param rawData - the input data buffer
+     * @param gestureSignalLength - the input data length
+     * @param thresholds - an array holding the thresholds for each signal on entry
+     * @param samplingFrequncy - the samplingFrequency used to collect the input signal
+     * @param thresholdScheme - the type of threshold computation scheme to use
+     * @param trimUpper - whether to trim the signal if the threshold is computed from the input data
+     */
     void RunPipeline(
         uint16_t rawData[NUM_PDs][GESTURE_BUFFER_LENGTH], 
         int gestureSignalLength, 
