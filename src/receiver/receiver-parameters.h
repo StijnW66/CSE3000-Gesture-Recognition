@@ -15,7 +15,7 @@
 // Parameters for threshold computation from stable signal value,
 // trimming and cutting-off the signal data in the first stages
 // of the pipeline.
-#define CUTT_OFF_THRESHOLD_COEFF        (DETECTION_THRESHOLD_COEFF + (1 - DETECTION_THRESHOLD_COEFF) / 2.0f)
+#define CUTT_OFF_THRESHOLD_COEFF            0.92f // (DETECTION_THRESHOLD_COEFF + (1 - DETECTION_THRESHOLD_COEFF) / 2.0f)
 #define CUTT_OFF_THRESHOLD_COEFF_PRE_FFT    1.1f    
 #define CUTT_OFF_THRESHOLD_COEFF_POST_FFT   (CUTT_OFF_THRESHOLD_COEFF_PRE_FFT - 1.0f)    
 
