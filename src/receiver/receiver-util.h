@@ -1,7 +1,10 @@
 #ifndef UTIL
 #define UTIL
 
-#include "Arduino.h"
+#ifdef USE_ARDUINO
+    #include "Arduino.h"
+#endif 
+
 #include "receiver-parameters.h"
 #include "plotting/plotting-util.h"
 

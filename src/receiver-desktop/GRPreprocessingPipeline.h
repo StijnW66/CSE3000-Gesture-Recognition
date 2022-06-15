@@ -4,15 +4,13 @@
 #include <cmath>
 #include <iostream>
 
-#include "pipeline-stages/MaxNormaliser.h"
-// #include "pipeline-stages/HampelOutlierDetector.h"
-#include "pipeline-stages/FFTCutOffFilter.h"
-// #include "pipeline-stages/SmoothFilter.h"
-#include "pipeline-stages/SignalStretcher.h"
-#include "pipeline-stages/SignalFlipper.h"
+#include "../receiver/pipeline-stages/MaxNormaliser.h"
+#include "../receiver/pipeline-stages/FFTCutOffFilter.h"
+#include "../receiver/pipeline-stages/SignalStretcher.h"
+#include "../receiver/pipeline-stages/SignalFlipper.h"
 
-#include "receiver-parameters.h"
-#include "receiver-util.h"
+#include "../receiver/receiver-parameters.h"
+#include "../receiver/receiver-util.h"
 
 using namespace std;
 

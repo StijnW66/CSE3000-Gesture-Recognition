@@ -1,12 +1,12 @@
+#define USE_ARDUINO
+
 #include <Arduino.h>
 #include <inttypes.h>
 #include <initializer_list>
 #include <vector>
 
 #include "pipeline-stages/MaxNormaliser.h"
-// #include "pipeline-stages/HampelOutlierDetector.h"
 #include "pipeline-stages/FFTCutOffFilter.h"
-// #include "pipeline-stages/SmoothFilter.h"
 #include "pipeline-stages/SignalStretcher.h"
 #include "pipeline-stages/SignalFlipper.h"
 

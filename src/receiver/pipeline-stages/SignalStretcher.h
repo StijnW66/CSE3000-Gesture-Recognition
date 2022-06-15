@@ -22,7 +22,7 @@ class SignalStretcher {
          * @param dest      - Output buffer. Has to be of length at least \p dLength .
          * @param dLength   - Output length to stretch up/down to.
          */
-        void StretchSignal(uint16_t * signal, int sLength, float * dest, int dLength) {
+        void StretchSignal(uint16_t * signal, int sLength, double * dest, int dLength) {
 
             int i = 0;
             float coeff = (float)(sLength-1) / (dLength-1);

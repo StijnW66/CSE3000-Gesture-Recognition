@@ -38,20 +38,23 @@
 // Number of photodiodes used by the system
 #define NUM_PDs 3
 
-// Arduino pins
-// TODO: Change macro names to LEFT, RIGHT, UP
-#define PD1 A0
-#define PD2 A1
-#define PD3 A2
+#ifdef USE_ARDUINO
+    // Arduino pins
+    // TODO: Change macro names to LEFT, RIGHT, UP
+    #define PD1 A0
+    #define PD2 A1
+    #define PD3 A2
 
-// Used to save and adjust which column-index is associated with each photodiode position.
-uint8_t pds[NUM_PDs] = {
-    PD3,
-    PD2,
-    PD1
-};
+    // Used to save and adjust which column-index is associated with each photodiode position.
+    uint8_t pds[NUM_PDs] = {
+        PD3,
+        PD2,
+        PD1
+    };
 
 // #define DEBUG_RECEIVER
 // #define PLOT_RECEIVER
+
+#endif
 
 #endif
