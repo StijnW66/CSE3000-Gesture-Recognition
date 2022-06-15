@@ -1,29 +1,30 @@
 import matplotlib.pyplot as plt
 import pickle
 
-raw = "src"
-proc = "new_reformatted/new_post_process/src"
-gest = "clockwise"
+raw = "raw_data"
+proc = "reformatted/post_process./raw_data"
+gest = "swipe_left"
 hand = "left_hand"
-cand = 10
+cand = 34
 
 rawData = []
 procData = []
 controlData = []
 
-with open("./{}/data_collection/data/control/candidate_{}.pickle".format(raw, cand), "rb") as file:
-    t = pickle.load(file)
-    controlData = t
-    print(t)
+# Plot control data
+# with open("./{}/data_collection/data/control/candidate_{}.pickle".format(raw, cand), "rb") as file:
+#     t = pickle.load(file)
+#     controlData = t
+#     print(t)
 
-with open("./{}/data_collection/data/{}/{}/candidate_{}.pickle".format(raw, gest, hand, cand), "rb") as file:
+with open("./{}/{}/{}/candidate_{}.pickle".format(raw, gest, hand, cand), "rb") as file:
     t = pickle.load(file)
     t = pickle.load(file)
     t = pickle.load(file)
     rawData = t
     print(t)
 
-with open("./{}/data_collection/data/{}/{}/candidate_{}.pickle".format(proc, gest, hand, cand), "rb") as file:
+with open("./{}/{}/{}/candidate_{}.pickle".format(proc, gest, hand, cand), "rb") as file:
     t = pickle.load(file)
     t = pickle.load(file)
     t = pickle.load(file)
