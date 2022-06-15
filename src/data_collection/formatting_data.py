@@ -10,14 +10,17 @@ from typing import Tuple
 import numpy as np
 import subprocess
 
+
 BOUNDARY_TOLERANCE = 0.05 # Controls the percentage from constant values that readings can deviate before being discarded
 CLOSE_TO_ONE_EPSILON = 1e-3
+DIST_FROM_MIN_TO_MAX = 0.75
 
 
 class SelectionStrategy(Enum):
-    MIN = min
-    MAX = max
-    MEAN = mean
+    MIN = 0
+    MAX = 1
+    MEAN = 2
+    MIN_MAX_SKEW = 3
 
 
 class FormatData():
@@ -27,8 +30,22 @@ class FormatData():
         self.convert_processed_files()
 
 
+    def _generate_threshold(self, data: np.ndarray, start_avg: np.float32, end_avg: np.float32,
+                            strategy: SelectionStrategy = SelectionStrategy.MEAN) -> float:
+        if strategy is SelectionStrategy.MIN:
+            return min(start_avg, end_avg)
+        elif strategy is SelectionStrategy.MAX:
+            return max(start_avg, end_avg)
+        elif strategy is SelectionStrategy.MEAN:
+            return mean([start_avg, end_avg])
+        elif strategy is SelectionStrategy.MIN_MAX_SKEW:
+            min_val = np.min(data)
+            max_val = np.max(data)
+            return min_val + ((max_val - min_val) * DIST_FROM_MIN_TO_MAX)
+
+
     def _compute_thresholds_from_data(self, data: np.ndarray,
-                                      strategy: SelectionStrategy = SelectionStrategy.MIN) -> Tuple[np.float32, np.float32, np.float32]:
+                                      strategy: SelectionStrategy = SelectionStrategy.MEAN) -> Tuple[np.float32, np.float32, np.float32]:
         thresholds = np.zeros(3, dtype=np.float32)
         first_samples = data[0]
         last_samples = data[-1]
@@ -45,12 +62,12 @@ class FormatData():
             # Compute average of constant values and use chosen strategy to generate threshold
             start_const_mean = mean(list(start_const_vals))
             end_const_mean = mean(list(end_const_vals))
-            thresholds[photodiode] = strategy.value([start_const_mean, end_const_mean])
+            thresholds[photodiode] = self._generate_threshold(data, start_const_mean, end_const_mean, strategy)
         
         return thresholds[0], thresholds[1], thresholds[2]
 
 
-    def _detect_all_ones(self, data: np.ndarray):
+    def _detect_all_ones(self, data: np.ndarray) -> bool:
         ones = np.ones(data.shape)
         close_to_one = np.isclose(data, ones, atol=CLOSE_TO_ONE_EPSILON)
         return np.all(close_to_one)
@@ -144,7 +161,7 @@ class FormatData():
                     os.makedirs(post_process_path)
 
                 for i, iteration in enumerate(self.unpickled):
-                    thresholds = self._compute_thresholds_from_data(iteration, SelectionStrategy.MIN)
+                    thresholds = self._compute_thresholds_from_data(iteration, SelectionStrategy.MEAN)
 
                     # Save the pickled data in the format that the pipeline expects
                     with open(f"{full_path}/iteration_{i}.txt", 'w') as f:
