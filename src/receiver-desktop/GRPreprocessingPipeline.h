@@ -48,13 +48,13 @@ public:
      * This is done per photodiode signal.
      * 
      * The final output is in `outData` and the computed thresholds are in `thresholds` 
-     * after the function exits.
+     * after the function exits. Returns the new gestureSignalLength.
      * 
      * threshWindow - size of sample window used on each side to compute the mean of the data on that side 
      * trimUpper    - indicates whether to trim the data using the computed threshold
      * 
      */
-    void FindThresholdUsingLower(
+    int FindThresholdUsingLower(
         uint16_t rawData[NUM_PDs][GESTURE_BUFFER_LENGTH], 
         uint16_t outData[NUM_PDs][GESTURE_BUFFER_LENGTH], 
         int gestureSignalLength, uint16_t thresholds[NUM_PDs], int threshWindow = 5, bool trimUpper = true) {
@@ -87,30 +87,33 @@ public:
             thresholds[di] = min(stableLeft[di], stableRight[di]);
         }
 
-        int newStart[3];
-        int newEnd[3];
+        int newStartFinal = gestureSignalLength;
+        int newEndFinal = 0;
 
         for (size_t i = 0; i < NUM_PDs; i++)
         {
-            newStart[i] = 0;
-            newEnd[i] = gestureSignalLength - 1;
+            int newStart = 0;
+            int newEnd = gestureSignalLength - 1;
 
             // If requested, trim both ends of the signal up to the first sample as small as the threshold
             if(trimUpper) {
-                while(rawData[i][newStart[i]] > thresholds[i]) {
-                    newStart[i]++;
+                while(rawData[i][newStart] > thresholds[i]) {
+                    newStart++;
                 }
 
-                while(rawData[i][newEnd[i]] > thresholds[i]) {
-                    newEnd[i]--;
+                while(rawData[i][newEnd] > thresholds[i]) {
+                    newEnd--;
                 }
             }
 
-            for (size_t index = 0; index < newEnd - newStart + 1; index++)
-            {
-                outData[i][index] = rawData[i][newStart[i] + index];
-            }
+            newStartFinal = min(newStart, newStartFinal);
+            newEndFinal = max(newEnd, newEndFinal);
         }
+
+        FOR(di, i, NUM_PDs, newEndFinal - newStartFinal + 1, 
+            outData[di][i] = rawData[di][newStartFinal + i])
+
+        return newEndFinal - newStartFinal + 1;
     }
 
     /**
@@ -122,13 +125,13 @@ public:
      * This is done per photodiode signal.
      * 
      * The final output is in `outData` and the computed thresholds are in `thresholds` 
-     * after the function exits.
+     * after the function exits. Returns the new gestureSignalLength.
      * 
      * threshWindow - size of sample window used on each side to compute the mean of the data on that side 
      * trimUpper    - indicates whether to trim the data using the computed threshold
      * 
      */
-    void FindThresholdUsingMean(
+    int FindThresholdUsingMean(
         uint16_t rawData[NUM_PDs][GESTURE_BUFFER_LENGTH], 
         uint16_t outData[NUM_PDs][GESTURE_BUFFER_LENGTH], 
         int gestureSignalLength, uint16_t thresholds[NUM_PDs], int threshWindow = 5, bool trimUpper = true) {
@@ -161,30 +164,33 @@ public:
             thresholds[di] = (stableLeft[di] + stableRight[di])/2;
         }
 
-        int newStart[3];
-        int newEnd[3];
+        int newStartFinal = gestureSignalLength;
+        int newEndFinal = 0;
 
         for (size_t i = 0; i < NUM_PDs; i++)
         {
-            newStart[i] = 0;
-            newEnd[i] = gestureSignalLength - 1;
+            int newStart = 0;
+            int newEnd = gestureSignalLength - 1;
 
             // If requested, trim both ends of the signal up to the first sample as small as the threshold
             if(trimUpper) {
-                while(rawData[i][newStart[i]] > thresholds[i]) {
-                    newStart[i]++;
+                while(rawData[i][newStart] > thresholds[i]) {
+                    newStart++;
                 }
 
-                while(rawData[i][newEnd[i]] > thresholds[i]) {
-                    newEnd[i]--;
+                while(rawData[i][newEnd] > thresholds[i]) {
+                    newEnd--;
                 }
             }
 
-            for (size_t index = 0; index < newEnd - newStart + 1; index++)
-            {
-                outData[i][index] = rawData[i][newStart[i] + index];
-            }
+            newStartFinal = min(newStart, newStartFinal);
+            newEndFinal = max(newEnd, newEndFinal);
         }
+
+        FOR(di, i, NUM_PDs, newEndFinal - newStartFinal + 1, 
+            outData[di][i] = rawData[di][newStartFinal + i])
+
+        return newEndFinal - newStartFinal + 1;
     }
 
     /**
@@ -208,10 +214,10 @@ public:
         int samplingFrequncy, int thresholdScheme = 0, bool trimUpper = true)
     {
         if (thresholdScheme == 1) {
-            FindThresholdUsingLower(rawData, trimmedData, gestureSignalLength, thresholds, trimUpper);
+            gestureSignalLength = FindThresholdUsingLower(rawData, trimmedData, gestureSignalLength, thresholds, trimUpper);
             rawData = trimmedData;
         } else if (thresholdScheme == 2) {
-            FindThresholdUsingMean(rawData, trimmedData, gestureSignalLength, thresholds, trimUpper);
+            gestureSignalLength = FindThresholdUsingMean(rawData, trimmedData, gestureSignalLength, thresholds, trimUpper);
             rawData = trimmedData;
         }
 
