@@ -80,6 +80,7 @@ void receiverOperationUpdateThresholdFromPhoBuffer() {
 
     // Calculate new threshold
     state = State::UPDATING_THRESHOLD_ACTUAL;
+    timer.restartTimer(timID);
 }
 
 void receiverOperationUpdateThresholdFromAdjBuffer()
@@ -100,6 +101,7 @@ void receiverOperationUpdateThresholdFromAdjBuffer()
 
     // Calculate new threshold
     state = State::RESETTING;
+    timer.restartTimer(timID);
 }
 
 void receiverOperationUpdateThresholdActual() {
