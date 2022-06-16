@@ -20,7 +20,8 @@ enum class State
     INITIALISING,
     DETECTING_START,
     DETECTING_END,
-    UPDATING_THRESHOLD,
+    UPDATING_THRESHOLD_AB,
+    UPDATING_THRESHOLD_PB,
     UPDATING_THRESHOLD_ACTUAL,
     RESETTING
 };
@@ -51,27 +52,30 @@ int timID;
 
 LightIntensityRegulator regulator;
 
-void receiverOperationUpdateThresholdActual() {
-    if (threshUpdateCount < THRESHOLD_UPD_BUFFER_LENGTH) {
-        for (size_t i = 0; i < NUM_PDs; i++)
-        {
-            reader.read(pds[i], thresholdUpdateBuffer[i] + threshUpdateCount);
-        }
-        threshUpdateCount++;
-    } else {
-        threshUpdateCount = 0;
-        for (size_t i = 0; i < NUM_PDs; i++)
-        {
-            uint16_t stable = QuickMedian<uint16_t>::GetMedian(thresholdUpdateBuffer[i], THRESHOLD_UPD_BUFFER_LENGTH);
-            edgeDetector[i].setThreshold(stable * DETECTION_THRESHOLD_COEFF);
-            edgeDetector[i].setCutOffThreshold(stable * CUTT_OFF_THRESHOLD_COEFF);
-        }
+void receiverOperationUpdateThresholdFromPhoBuffer() {
+    bool deltaLBigger = false, deltaLSmaller = false;
 
-        state = State::DETECTING_START;
+    for (size_t i = 0; i < NUM_PDs; i++)
+    {
+        uint16_t stable = QuickMedian<uint16_t>::GetMedian(photodiodeData[i], GESTURE_BUFFER_LENGTH);
+        uint16_t deltaL = stable * DETECTION_THRESHOLD_COEFF - edgeDetector[i].getThreshold();
+
+        if (deltaL > 100)
+            deltaLBigger = true;
+        if (deltaL < -100)
+            deltaLSmaller = true;
     }
+
+    if (deltaLBigger)
+        regulator.resistorDown();
+    else if (deltaLSmaller)
+        regulator.resistorUp();
+
+    // Calculate new threshold
+    state = State::UPDATING_THRESHOLD_ACTUAL;
 }
 
-void receiverOperationUpdateThreshold()
+void receiverOperationUpdateThresholdFromAdjBuffer()
 {
     bool deltaLBigger = false, deltaLSmaller = false;
 
@@ -95,6 +99,26 @@ void receiverOperationUpdateThreshold()
 
     // Calculate new threshold
     state = State::UPDATING_THRESHOLD_ACTUAL;
+}
+
+void receiverOperationUpdateThresholdActual() {
+    if (threshUpdateCount < THRESHOLD_UPD_BUFFER_LENGTH) {
+        for (size_t i = 0; i < NUM_PDs; i++)
+        {
+            reader.read(pds[i], thresholdUpdateBuffer[i] + threshUpdateCount);
+        }
+        threshUpdateCount++;
+    } else {
+        threshUpdateCount = 0;
+        for (size_t i = 0; i < NUM_PDs; i++)
+        {
+            uint16_t stable = QuickMedian<uint16_t>::GetMedian(thresholdUpdateBuffer[i], THRESHOLD_UPD_BUFFER_LENGTH);
+            edgeDetector[i].setThreshold(stable * DETECTION_THRESHOLD_COEFF);
+            edgeDetector[i].setCutOffThreshold(stable * CUTT_OFF_THRESHOLD_COEFF);
+        }
+        state = State::RESETTING;
+        timer.restartTimer(timID);
+    }
 }
 
 void receiverOperationInitialising()
@@ -129,7 +153,8 @@ void receiverOperationDetectingStart()
     // If there was no gesture recently, update the threshold
     if (taBuffer[0] - thresholdAdjustmentBuffer[0] >= THRESHOLD_ADJ_BUFFER_LENGTH)
     {
-        state = State::UPDATING_THRESHOLD;
+        state = State::UPDATING_THRESHOLD_AB;
+        timer.restartTimer(timID);
         return;
     }
 
@@ -220,7 +245,7 @@ void receiverOperationDetectingEnd()
     else
     {
         // Gesture took too long -> Light Intensity Change -> Threshold Recalculation
-        state = State::UPDATING_THRESHOLD;
+        state = State::UPDATING_THRESHOLD_PB;
         timer.restartTimer(timID);
     }
 }
@@ -235,14 +260,7 @@ void receiverOperationResetting()
         taBuffer[i] = thresholdAdjustmentBuffer[i];
     }
 
-    if (!endDetected)
-    {
-        state = State::UPDATING_THRESHOLD;
-    }
-    else
-    {
-        state = State::INITIALISING;
-    }
+    state = State::INITIALISING;
     timer.restartTimer(timID);
 }
 
@@ -262,8 +280,12 @@ void receiverRunOperation()
         receiverOperationDetectingEnd();
         break;
 
-    case State::UPDATING_THRESHOLD:
-        receiverOperationUpdateThreshold();
+    case State::UPDATING_THRESHOLD_AB:
+        receiverOperationUpdateThresholdFromAdjBuffer();
+        break;
+    
+    case State::UPDATING_THRESHOLD_PB:
+        receiverOperationUpdateThresholdFromPhoBuffer();
         break;
 
     case State::UPDATING_THRESHOLD_ACTUAL:
