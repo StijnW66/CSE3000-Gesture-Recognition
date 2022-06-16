@@ -13,6 +13,8 @@
 #include "../ml-arduino/prediction_enums.hpp"
 #include "../ml-arduino/main_arduino.hpp"
 
+#include "../diode_calibration/diode_calibration.h"
+
 enum class State
 {
     INITIALISING,
@@ -43,6 +45,8 @@ GRPreprocessingPipeline pipeline;
 
 SimpleTimer timer;
 int timID;
+
+LightIntensityRegulator regulator;
 
 void receiverOperationUpdateThreshold()
 {
