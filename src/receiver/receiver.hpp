@@ -102,11 +102,10 @@ void receiverOperationUpdateThresholdFromAdjBuffer()
     // Calculate new threshold
     state = State::RESETTING;
     timer.restartTimer(timID);
+    thresholdAdjDataIndex = 0;
 }
 
 void receiverOperationUpdateThresholdActual() {
-    thresholdAdjDataIndex = 0;
-
     if (thresholdAdjDataIndex < THRESHOLD_UPD_BUFFER_LENGTH - 1) 
     {
         for (size_t i = 0; i < NUM_PDs; i++)
@@ -174,15 +173,13 @@ void receiverOperationDetectingStart()
 
     // Try to detect a start on one of the photodiodes
     bool startEdgeDetected = false;
-    for (size_t i = 0; i < NUM_PDs; i++)
-        startEdgeDetected = startEdgeDetected || edgeDetector[i].DetectStart(&photodiodeData[i][gestureDataIndex]);
-
-    if (detectionWindowFull && startEdgeDetected)
-    {
-        state = State::DETECTING_END;
+    for (size_t i = 0; i < NUM_PDs; i++){
+        if(edgeDetector[i].DetectStart(&photodiodeData[i][gestureDataIndex])){
+            state = State::DETECTING_END;
 #ifdef DEBUG_RECEIVER
-        Serial.println("Gesture started");
+            Serial.println("Gesture started");
 #endif
+        }
     }
 }
 
