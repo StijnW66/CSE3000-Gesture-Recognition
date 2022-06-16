@@ -28,19 +28,18 @@ enum class State
 
 State state = State::INITIALISING;
 
-int count = 0;
-int threshUpdateCount = 0;
-bool detectionWindowFull = false;
-bool endDetected = false;
+int gestureDataIndex        = 0;
+int thresholdAdjDataIndex   = 0;
+int threshUpdateCount       = 0;
+bool detectionWindowFull    = false;
+bool endDetected            = false;
 
 // Buffers for dynamic threshold adjustment
 uint16_t thresholdAdjustmentBuffer[NUM_PDs][THRESHOLD_ADJ_BUFFER_LENGTH];
-uint16_t *taBuffer[NUM_PDs];
 uint16_t thresholdUpdateBuffer[NUM_PDs][THRESHOLD_UPD_BUFFER_LENGTH];
 
 // Buffers for gesture signal capture
 uint16_t photodiodeData[NUM_PDs][GESTURE_BUFFER_LENGTH];
-uint16_t *photodiodeDataPtr[NUM_PDs];
 int gestureSignalLength;
 
 GRDiodeReader reader;
@@ -82,23 +81,17 @@ void receiverOperationUpdateThresholdFromAdjBuffer()
     for (size_t i = 0; i < NUM_PDs; i++)
     {
         uint16_t stable = QuickMedian<uint16_t>::GetMedian(thresholdAdjustmentBuffer[i], THRESHOLD_ADJ_BUFFER_LENGTH);
-        uint16_t deltaL = stable * DETECTION_THRESHOLD_COEFF - edgeDetector[i].getThreshold();
-
-        if (deltaL > 100)
-            deltaLBigger = true;
-        if (deltaL < -100)
-            deltaLSmaller = true;
-
-        taBuffer[i] = thresholdAdjustmentBuffer[i];
+        edgeDetector[i].setThreshold(stable * DETECTION_THRESHOLD_COEFF);
+        edgeDetector[i].setCutOffThreshold(stable * CUTT_OFF_THRESHOLD_COEFF);
     }
 
-    if (deltaLBigger)
-        regulator.resistorDown();
-    else if (deltaLSmaller)
-        regulator.resistorUp();
+    // if (deltaLBigger)
+    //     regulator.resistorDown();
+    // else if (deltaLSmaller)
+    //     regulator.resistorUp();
 
     // Calculate new threshold
-    state = State::UPDATING_THRESHOLD_ACTUAL;
+    state = State::RESETTING;
 }
 
 void receiverOperationUpdateThresholdActual() {
@@ -126,15 +119,19 @@ void receiverOperationInitialising()
     // If the detection window is not filled, fill it
     for (size_t i = 0; i < NUM_PDs; i++)
     {
-        reader.read(pds[i], photodiodeDataPtr[i]++);
-        reader.read(pds[i], taBuffer[i]++);
+        reader.read(pds[i], &photodiodeData[i][gestureDataIndex]);
+        reader.read(pds[i], &thresholdAdjustmentBuffer[i][thresholdAdjDataIndex]);
     }
-    count++;
-    if (count == DETECTION_BUFFER_LENGTH)
+
+    thresholdAdjDataIndex++;
+    
+    if (gestureDataIndex < DETECTION_BUFFER_LENGTH - 1)
     {
-        for (size_t i = 0; i < NUM_PDs; i++)
-            photodiodeDataPtr[i]--;
+        gestureDataIndex++;
+    } 
+    else {
         state = State::DETECTING_START;
+        detectionWindowFull = true;
     }
 }
 
@@ -146,12 +143,14 @@ void receiverOperationDetectingStart()
 
     for (size_t i = 0; i < NUM_PDs; i++)
     {
-        reader.read(pds[i], photodiodeDataPtr[i]);
-        reader.read(pds[i], taBuffer[i]++);
+        reader.read(pds[i], &photodiodeData[i][gestureDataIndex]);
+        reader.read(pds[i], &thresholdAdjustmentBuffer[i][thresholdAdjDataIndex]);
     }
 
+    thresholdAdjDataIndex++;
+
     // If there was no gesture recently, update the threshold
-    if (taBuffer[0] - thresholdAdjustmentBuffer[0] >= THRESHOLD_ADJ_BUFFER_LENGTH)
+    if (thresholdAdjDataIndex >= THRESHOLD_ADJ_BUFFER_LENGTH - 1)
     {
         state = State::UPDATING_THRESHOLD_AB;
         timer.restartTimer(timID);
@@ -161,7 +160,7 @@ void receiverOperationDetectingStart()
     // Try to detect a start on one of the photodiodes
     bool startEdgeDetected = false;
     for (size_t i = 0; i < NUM_PDs; i++)
-        startEdgeDetected = startEdgeDetected || edgeDetector[i].DetectStart(photodiodeDataPtr[i]);
+        startEdgeDetected = startEdgeDetected || edgeDetector[i].DetectStart(&photodiodeData[i][gestureDataIndex]);
 
     if (detectionWindowFull && startEdgeDetected)
     {
@@ -174,37 +173,30 @@ void receiverOperationDetectingStart()
 
 void receiverOperationDetectingEnd()
 {
-    // Read enough more data to avoid buffer overflow when checking end
-    // of gesture if more samples are checked for end than for start
-    if (count++ < DETECTION_END_WINDOW_LENGTH - DETECTION_BUFFER_LENGTH)
-    {
-        for (size_t i = 0; i < NUM_PDs; i++)
-        {
-            photodiodeDataPtr[i]++;
-            reader.read(pds[i], photodiodeDataPtr[i]);
-        }
-        return;
-    }
-
     // Read new data and check for end of gesture
-    if (count++ < GESTURE_BUFFER_LENGTH)
+    if (gestureDataIndex < GESTURE_BUFFER_LENGTH - 1)
     {
+        gestureDataIndex++;
+
         // Read next sample
         for (size_t i = 0; i < NUM_PDs; i++)
         {
-            photodiodeDataPtr[i]++;
-            reader.read(pds[i], photodiodeDataPtr[i]);
+            reader.read(pds[i], &photodiodeData[i][gestureDataIndex]);
         }
+
+        // Read enough more data to avoid buffer overflow when checking end
+        // of gesture if more samples are checked for end than for start
+        if (gestureDataIndex < DETECTION_END_WINDOW_LENGTH - 1) return;
 
         // Try to detect end in all photodiodes
         bool endEdgeDetected = true;
         for (size_t i = 0; i < NUM_PDs; i++)
-            endEdgeDetected = endEdgeDetected && edgeDetector[i].DetectEnd(photodiodeDataPtr[i]);
+            endEdgeDetected = endEdgeDetected && edgeDetector[i].DetectEnd(&photodiodeData[i][gestureDataIndex]);
 
         if (endEdgeDetected)
         {
             // Determine the gesture length
-            gestureSignalLength = photodiodeDataPtr[0] - photodiodeData[0] + 1;
+            gestureSignalLength = gestureDataIndex + 1;
 
             // Reject gestures that took too short time
             if (gestureSignalLength < GESTURE_MIN_TIME_MS / READ_PERIOD + 1)
@@ -229,6 +221,7 @@ void receiverOperationDetectingEnd()
                 thresholds[i] = edgeDetector[i].getCutOffThreshold();
             }
 
+            Serial.println("Running pipeline ...");
             pipeline.RunPipeline(photodiodeData, gestureSignalLength, thresholds);
 
             float(*output)[100] = pipeline.getPipelineOutput();
@@ -254,11 +247,8 @@ void receiverOperationResetting()
 {
     // Reset the buffer pointers for PD gesture data collection
     detectionWindowFull = false;
-    for (size_t i = 0; i < NUM_PDs; i++)
-    {
-        photodiodeDataPtr[i] = photodiodeData[i];
-        taBuffer[i] = thresholdAdjustmentBuffer[i];
-    }
+    gestureDataIndex = 0;
+    thresholdAdjDataIndex = 0;
 
     state = State::INITIALISING;
     timer.restartTimer(timID);
@@ -306,9 +296,7 @@ void receiverSetup()
     for (size_t i = 0; i < NUM_PDs; i++)
     {
         pinMode(pds[i], INPUT);
-        taBuffer[i] = thresholdAdjustmentBuffer[i];
-        photodiodeDataPtr[i] = photodiodeData[i];
-        edgeDetector[i] = GREdgeDetector(DETECTION_WINDOW_LENGTH, DETECTION_END_WINDOW_LENGTH, 750);
+        edgeDetector[i] = GREdgeDetector(DETECTION_WINDOW_LENGTH, DETECTION_END_WINDOW_LENGTH, 500);
     }
 
     Serial.begin(9600);
@@ -317,5 +305,7 @@ void receiverSetup()
 
 void receiverLoop()
 {
-    timer.run();
+    // Serial.println("Running operation: ");
+    // Serial.println(static_cast<int>(state));
+    receiverRunOperation();
 }
