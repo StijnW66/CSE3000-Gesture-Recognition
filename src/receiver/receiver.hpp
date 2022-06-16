@@ -21,18 +21,21 @@ enum class State
     DETECTING_START,
     DETECTING_END,
     UPDATING_THRESHOLD,
+    UPDATING_THRESHOLD_ACTUAL,
     RESETTING
 };
 
 State state = State::INITIALISING;
 
 int count = 0;
+int threshUpdateCount = 0;
 bool detectionWindowFull = false;
 bool endDetected = false;
 
 // Buffers for dynamic threshold adjustment
 uint16_t thresholdAdjustmentBuffer[NUM_PDs][THRESHOLD_ADJ_BUFFER_LENGTH];
 uint16_t *taBuffer[NUM_PDs];
+uint16_t thresholdUpdateBuffer[NUM_PDs][THRESHOLD_UPD_BUFFER_LENGTH];
 
 // Buffers for gesture signal capture
 uint16_t photodiodeData[NUM_PDs][GESTURE_BUFFER_LENGTH];
@@ -48,17 +51,50 @@ int timID;
 
 LightIntensityRegulator regulator;
 
+void receiverOperationUpdateThresholdActual() {
+    if (threshUpdateCount < THRESHOLD_UPD_BUFFER_LENGTH) {
+        for (size_t i = 0; i < NUM_PDs; i++)
+        {
+            reader.read(pds[i], thresholdUpdateBuffer[i] + threshUpdateCount);
+        }
+        threshUpdateCount++;
+    } else {
+        threshUpdateCount = 0;
+        for (size_t i = 0; i < NUM_PDs; i++)
+        {
+            uint16_t stable = QuickMedian<uint16_t>::GetMedian(thresholdUpdateBuffer[i], THRESHOLD_UPD_BUFFER_LENGTH);
+            edgeDetector[i].setThreshold(stable * DETECTION_THRESHOLD_COEFF);
+            edgeDetector[i].setCutOffThreshold(stable * CUTT_OFF_THRESHOLD_COEFF);
+        }
+
+        state = State::DETECTING_START;
+    }
+}
+
 void receiverOperationUpdateThreshold()
 {
+    bool deltaLBigger = false, deltaLSmaller = false;
+
     for (size_t i = 0; i < NUM_PDs; i++)
     {
         uint16_t stable = QuickMedian<uint16_t>::GetMedian(thresholdAdjustmentBuffer[i], THRESHOLD_ADJ_BUFFER_LENGTH);
-        edgeDetector[i].setThreshold(stable * DETECTION_THRESHOLD_COEFF);
-        edgeDetector[i].setCutOffThreshold(stable * CUTT_OFF_THRESHOLD_COEFF);
+        uint16_t deltaL = stable * DETECTION_THRESHOLD_COEFF - edgeDetector[i].getThreshold();
+
+        if (deltaL > 100)
+            deltaLBigger = true;
+        if (deltaL < -100)
+            deltaLSmaller = true;
+
         taBuffer[i] = thresholdAdjustmentBuffer[i];
     }
 
-    state = State::DETECTING_START;
+    if (deltaLBigger)
+        regulator.resistorDown();
+    else if (deltaLSmaller)
+        regulator.resistorUp();
+
+    // Calculate new threshold
+    state = State::UPDATING_THRESHOLD_ACTUAL;
 }
 
 void receiverOperationInitialising()
@@ -105,9 +141,9 @@ void receiverOperationDetectingStart()
     if (detectionWindowFull && startEdgeDetected)
     {
         state = State::DETECTING_END;
-        #ifdef DEBUG_RECEIVER
-            Serial.println("Gesture started");
-        #endif
+#ifdef DEBUG_RECEIVER
+        Serial.println("Gesture started");
+#endif
     }
 }
 
@@ -144,17 +180,18 @@ void receiverOperationDetectingEnd()
         {
             // Determine the gesture length
             gestureSignalLength = photodiodeDataPtr[0] - photodiodeData[0] + 1;
-            
+
             // Reject gestures that took too short time
             if (gestureSignalLength < GESTURE_MIN_TIME_MS / READ_PERIOD + 1)
             {
-                #ifdef DEBUG_RECEIVER
-                                Serial.println("Gesture took too little time! Rejecting and starting over ...");
-                #endif
+#ifdef DEBUG_RECEIVER
+                Serial.println("Gesture took too little time! Rejecting and starting over ...");
+#endif
                 state = State::RESETTING;
                 timer.restartTimer(timID);
             }
-            else {
+            else
+            {
                 endDetected = true;
             }
 
@@ -179,8 +216,10 @@ void receiverOperationDetectingEnd()
             state = State::RESETTING;
             timer.restartTimer(timID);
         }
-    } else {
-        // Gesture took too long -> Light Intensity Change -> Threshold Recalculation   
+    }
+    else
+    {
+        // Gesture took too long -> Light Intensity Change -> Threshold Recalculation
         state = State::UPDATING_THRESHOLD;
         timer.restartTimer(timID);
     }
@@ -195,10 +234,13 @@ void receiverOperationResetting()
         photodiodeDataPtr[i] = photodiodeData[i];
         taBuffer[i] = thresholdAdjustmentBuffer[i];
     }
-    
-    if (!endDetected) {
+
+    if (!endDetected)
+    {
         state = State::UPDATING_THRESHOLD;
-    } else {
+    }
+    else
+    {
         state = State::INITIALISING;
     }
     timer.restartTimer(timID);
@@ -222,6 +264,10 @@ void receiverRunOperation()
 
     case State::UPDATING_THRESHOLD:
         receiverOperationUpdateThreshold();
+        break;
+
+    case State::UPDATING_THRESHOLD_ACTUAL:
+        receiverOperationUpdateThresholdActual();
         break;
 
     case State::RESETTING:
