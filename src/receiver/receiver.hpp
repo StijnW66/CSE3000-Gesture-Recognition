@@ -267,6 +267,17 @@ void receiverOperationResetting()
     timer.restartTimer(timID);
 }
 
+/**
+ * @brief FSM state operation selection.
+ * 
+ * INITIALISING                 - collect enough data before beginning start detection.
+ * DETECTING_START              - start detection
+ * DETECTING_END                - end detection and pipeline running
+ * UPDATING_THRESHOLD_AB        - update the edge detection threshold after a gesture wasnt performed for some time
+ * UPDATING_THRESHOLD_PB        - update the edge detection threshold in case a gesture was too long
+ * UPDATING_THRESHOLD_ACTUAL    - only this state updates the edge detection threshold by collecting data and find its medium
+ * RESETTING                    - reset the counters and go back to INITIALISING
+ */
 void receiverRunOperation()
 {
     switch (state)
