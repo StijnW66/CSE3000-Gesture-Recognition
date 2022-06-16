@@ -15,6 +15,10 @@
 
 #include "../diode_calibration/diode_calibration.h"
 
+/**
+ * @brief An enum for the different receiver stages of computation. Used for creating FSM architecture.
+ * 
+ */
 enum class State
 {
     INITIALISING,
@@ -26,30 +30,34 @@ enum class State
     RESETTING
 };
 
+// The current receiver state in the FSM
 State state = State::INITIALISING;
 
-int gestureDataIndex        = 0;
-int thresholdAdjDataIndex   = 0;
-int threshUpdateCount       = 0;
+// flags that indicate whether enough PD data is read for start detection to begin
+//      and whether an end is successfully detected from an actual gesture
 bool detectionWindowFull    = false;
 bool endDetected            = false;
 
 // Buffers for dynamic threshold adjustment
 uint16_t thresholdAdjustmentBuffer[NUM_PDs][THRESHOLD_ADJ_BUFFER_LENGTH];
-uint16_t thresholdUpdateBuffer[NUM_PDs][THRESHOLD_UPD_BUFFER_LENGTH];
+int thresholdAdjDataIndex = 0;
 
 // Buffers for gesture signal capture
 uint16_t photodiodeData[NUM_PDs][GESTURE_BUFFER_LENGTH];
+
+// Current index in the buffer for new photodiode data to be written to
+int gestureDataIndex = 0;
+
+// Detected gesture signal length
 int gestureSignalLength;
 
 GRDiodeReader reader;
 GREdgeDetector edgeDetector[NUM_PDs];
 GRPreprocessingPipeline pipeline;
+LightIntensityRegulator regulator;
 
 SimpleTimer timer;
 int timID;
-
-LightIntensityRegulator regulator;
 
 void receiverOperationUpdateThresholdFromPhoBuffer() {
     bool deltaLBigger = false, deltaLSmaller = false;
@@ -95,17 +103,22 @@ void receiverOperationUpdateThresholdFromAdjBuffer()
 }
 
 void receiverOperationUpdateThresholdActual() {
-    if (threshUpdateCount < THRESHOLD_UPD_BUFFER_LENGTH) {
+    thresholdAdjDataIndex = 0;
+
+    if (thresholdAdjDataIndex < THRESHOLD_UPD_BUFFER_LENGTH - 1) 
+    {
         for (size_t i = 0; i < NUM_PDs; i++)
         {
-            reader.read(pds[i], thresholdUpdateBuffer[i] + threshUpdateCount);
+            reader.read(pds[i], &thresholdAdjustmentBuffer[i][thresholdAdjDataIndex]);
         }
-        threshUpdateCount++;
-    } else {
-        threshUpdateCount = 0;
+
+        thresholdAdjDataIndex++;
+    } 
+    else 
+    {
         for (size_t i = 0; i < NUM_PDs; i++)
         {
-            uint16_t stable = QuickMedian<uint16_t>::GetMedian(thresholdUpdateBuffer[i], THRESHOLD_UPD_BUFFER_LENGTH);
+            uint16_t stable = QuickMedian<uint16_t>::GetMedian(thresholdAdjustmentBuffer[i], THRESHOLD_UPD_BUFFER_LENGTH);
             edgeDetector[i].setThreshold(stable * DETECTION_THRESHOLD_COEFF);
             edgeDetector[i].setCutOffThreshold(stable * CUTT_OFF_THRESHOLD_COEFF);
         }
