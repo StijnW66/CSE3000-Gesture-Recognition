@@ -33,19 +33,24 @@ enum class State
 // The current receiver state in the FSM
 State state = State::INITIALISING;
 
-// flags that indicate whether enough PD data is read for start detection to begin
-//      and whether an end is successfully detected from an actual gesture
+// flag - indicates whether enough PD data is read for start detection to begin
 bool detectionWindowFull    = false;
+
+// flag - indicates whether an end is successfully detected from a long enough gesture
 bool endDetected            = false;
 
 // Buffers for dynamic threshold adjustment
 uint16_t thresholdAdjustmentBuffer[NUM_PDs][THRESHOLD_ADJ_BUFFER_LENGTH];
+
+// Current index in the threshold adjustment buffer 
+//  for new photodiode data to be written to
 int thresholdAdjDataIndex = 0;
 
 // Buffers for gesture signal capture
 uint16_t photodiodeData[NUM_PDs][GESTURE_BUFFER_LENGTH];
 
-// Current index in the buffer for new photodiode data to be written to
+// Current index in the gesture signal buffer
+//  for new photodiode data to be written to
 int gestureDataIndex = 0;
 
 // Detected gesture signal length
@@ -56,12 +61,16 @@ GREdgeDetector edgeDetector[NUM_PDs];
 GRPreprocessingPipeline pipeline;
 LightIntensityRegulator * recRegulator;
 
+// Software timer based on millis() used for sampling period accuracy
 SimpleTimer timer;
 int timID;
 
 void receiverOperationUpdateThresholdFromPhoBuffer() {
     bool deltaLBigger = false, deltaLSmaller = false;
 
+    // For each photodiode - find its current stable signal and 
+    //  compare it with the previous one.
+    // Use the gesture data from a too long gesture 
     for (size_t i = 0; i < NUM_PDs; i++)
     {
         uint16_t stable = QuickMedian<uint16_t>::GetMedian(photodiodeData[i], GESTURE_BUFFER_LENGTH);
@@ -73,28 +82,31 @@ void receiverOperationUpdateThresholdFromPhoBuffer() {
             deltaLSmaller = true;
     }
 
+    // Update the photodiode sensitivity using the calibration module if needed.
     if (deltaLBigger)
         recRegulator->resistorDown();
     else if (deltaLSmaller)
         recRegulator->resistorUp();
 
-    // Calculate new threshold
+    // Continue to new threshold computation
     state = State::UPDATING_THRESHOLD_ACTUAL;
     timer.restartTimer(timID);
 }
 
+// This is a utility function ONLY for DEBUGGING without the usage
+//  of hardware adjustment.
 void receiverOperationUpdateThresholdFromAdjBuffer_NoHardware()
 {
     bool deltaLBigger = false, deltaLSmaller = false;
 
     for (size_t i = 0; i < NUM_PDs; i++)
     {
+        // Calculate new threshold
         uint16_t stable = QuickMedian<uint16_t>::GetMedian(thresholdAdjustmentBuffer[i], THRESHOLD_ADJ_BUFFER_LENGTH);
         edgeDetector[i].setThreshold(stable * DETECTION_THRESHOLD_COEFF);
         edgeDetector[i].setCutOffThreshold(stable * CUTT_OFF_THRESHOLD_COEFF);
     }
 
-    // Calculate new threshold
     state = State::RESETTING;
     timer.restartTimer(timID);
     thresholdAdjDataIndex = 0;
@@ -104,6 +116,9 @@ void receiverOperationUpdateThresholdFromAdjBuffer()
 {
     bool deltaLBigger = false, deltaLSmaller = false;
 
+    // For each photodiode - find its current stable signal and 
+    //  compare it with the previous one.
+    // Use the photodiode data collected without a gesture being detected 
     for (size_t i = 0; i < NUM_PDs; i++)
     {
         uint16_t stable = QuickMedian<uint16_t>::GetMedian(thresholdAdjustmentBuffer[i], THRESHOLD_ADJ_BUFFER_LENGTH);
@@ -115,18 +130,20 @@ void receiverOperationUpdateThresholdFromAdjBuffer()
             deltaLSmaller = true;
     }
 
+    // Update the photodiode sensitivity using the calibration module if needed.
     if (deltaLBigger)
         recRegulator->resistorDown();
     else if (deltaLSmaller)
         recRegulator->resistorUp();
 
-    // Calculate new threshold
+    // Continue to new threshold computation
     state = State::UPDATING_THRESHOLD_ACTUAL;
     timer.restartTimer(timID);
     thresholdAdjDataIndex = 0;
 }
 
 void receiverOperationUpdateThresholdActual() {
+    // Collect enough data for threshold computation
     if (thresholdAdjDataIndex < THRESHOLD_UPD_BUFFER_LENGTH - 1) 
     {
         for (size_t i = 0; i < NUM_PDs; i++)
@@ -138,6 +155,7 @@ void receiverOperationUpdateThresholdActual() {
     } 
     else 
     {
+        // Calculate the new thresholds for the photodiodes using the median of the collected data
         for (size_t i = 0; i < NUM_PDs; i++)
         {
             uint16_t stable = QuickMedian<uint16_t>::GetMedian(thresholdAdjustmentBuffer[i], THRESHOLD_UPD_BUFFER_LENGTH);
@@ -286,7 +304,7 @@ void receiverOperationResetting()
 }
 
 /**
- * @brief FSM state operation selection.
+ * FSM state operation selection.
  * 
  * INITIALISING                 - collect enough data before beginning start detection.
  * DETECTING_START              - start detection
