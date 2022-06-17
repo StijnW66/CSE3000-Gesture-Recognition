@@ -83,7 +83,7 @@ void receiverOperationUpdateThresholdFromPhoBuffer() {
     timer.restartTimer(timID);
 }
 
-void receiverOperationUpdateThresholdFromAdjBuffer()
+void receiverOperationUpdateThresholdFromAdjBuffer_NoHardware()
 {
     bool deltaLBigger = false, deltaLSmaller = false;
 
@@ -94,13 +94,34 @@ void receiverOperationUpdateThresholdFromAdjBuffer()
         edgeDetector[i].setCutOffThreshold(stable * CUTT_OFF_THRESHOLD_COEFF);
     }
 
-    // if (deltaLBigger)
-    //     regulator.resistorDown();
-    // else if (deltaLSmaller)
-    //     regulator.resistorUp();
-
     // Calculate new threshold
     state = State::RESETTING;
+    timer.restartTimer(timID);
+    thresholdAdjDataIndex = 0;
+}
+
+void receiverOperationUpdateThresholdFromAdjBuffer()
+{
+    bool deltaLBigger = false, deltaLSmaller = false;
+
+    for (size_t i = 0; i < NUM_PDs; i++)
+    {
+        uint16_t stable = QuickMedian<uint16_t>::GetMedian(thresholdAdjustmentBuffer[i], THRESHOLD_ADJ_BUFFER_LENGTH);
+        uint16_t deltaL = stable * DETECTION_THRESHOLD_COEFF - edgeDetector[i].getThreshold();
+
+        if (deltaL > 100)
+            deltaLBigger = true;
+        if (deltaL < -100)
+            deltaLSmaller = true;
+    }
+
+    if (deltaLBigger)
+        recRegulator->resistorDown();
+    else if (deltaLSmaller)
+        recRegulator->resistorUp();
+
+    // Calculate new threshold
+    state = State::UPDATING_THRESHOLD_ACTUAL;
     timer.restartTimer(timID);
     thresholdAdjDataIndex = 0;
 }
