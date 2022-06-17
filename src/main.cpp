@@ -35,7 +35,7 @@ void setup() {
   regulator = new LightIntensityRegulator();
 
   // tensorflowSetup();
-  receiverSetup(regulator);
+  receiverSetup([]{regulator->resistorDown();}, []{regulator->resistorUp();});
 
   // pinMode(A0, ANALOG);
   // pinMode(A1, INPUT);

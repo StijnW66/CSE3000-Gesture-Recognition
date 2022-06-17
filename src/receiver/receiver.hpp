@@ -15,8 +15,6 @@
 #include "../ml-arduino/prediction_enums.hpp"
 #include "../ml-arduino/main_arduino.hpp"
 
-#include "../diode_calibration/diode_calibration.h"
-
 /**
  * @brief An enum for the different receiver stages of computation. Used for creating FSM architecture.
  * 
@@ -61,11 +59,13 @@ int gestureSignalLength;
 GRDiodeReader reader;
 GREdgeDetector edgeDetector[NUM_PDs];
 GRPreprocessingPipeline pipeline;
-LightIntensityRegulator * recRegulator;
 
 // Software timer based on millis() used for sampling period accuracy
 SimpleTimer timer;
 int timID;
+
+void (*updateForMoreLight)();
+void (*updateForLessLight)();
 
 template<int size> 
 void checkLightIntensityAndAdjustHardware(uint16_t data[NUM_PDs][size]) 
@@ -88,9 +88,9 @@ void checkLightIntensityAndAdjustHardware(uint16_t data[NUM_PDs][size])
 
     // Update the photodiode sensitivity using the calibration module if needed.
     if (deltaLBigger)
-        recRegulator->resistorDown();
+        updateForMoreLight();
     else if (deltaLSmaller)
-        recRegulator->resistorUp();
+        updateForLessLight();
 }
 
 void receiverOperationUpdateThresholdFromPhoBuffer() 
@@ -329,9 +329,11 @@ void receiverRunOperation()
     }
 }
 
-void receiverSetup(LightIntensityRegulator * regulator)
+void receiverSetup(void (*extUpdateForMoreLight)(), void (*extUpdateForLessLight)())
 {
-    recRegulator = regulator;
+    updateForLessLight = extUpdateForLessLight;
+    updateForMoreLight = extUpdateForMoreLight;
+
     for (size_t i = 0; i < NUM_PDs; i++)
     {
         pinMode(pds[i], INPUT);
