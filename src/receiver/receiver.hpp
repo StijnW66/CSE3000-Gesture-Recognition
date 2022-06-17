@@ -1,3 +1,5 @@
+#define USE_ARDUINO
+
 #include <Arduino.h>
 #include <inttypes.h>
 #include <QuickMedianLib.h>
@@ -146,11 +148,7 @@ void receiverOperationUpdateThresholdActual() {
     // Collect enough data for threshold computation
     if (thresholdAdjDataIndex < THRESHOLD_UPD_BUFFER_LENGTH - 1) 
     {
-        for (size_t i = 0; i < NUM_PDs; i++)
-        {
-            reader.read(pds[i], &thresholdAdjustmentBuffer[i][thresholdAdjDataIndex]);
-        }
-
+        reader.readAll(thresholdAdjustmentBuffer, thresholdAdjDataIndex);
         thresholdAdjDataIndex++;
     } 
     else 
@@ -170,11 +168,8 @@ void receiverOperationUpdateThresholdActual() {
 void receiverOperationInitialising()
 {
     // If the detection window is not filled, fill it
-    for (size_t i = 0; i < NUM_PDs; i++)
-    {
-        reader.read(pds[i], &photodiodeData[i][gestureDataIndex]);
-        reader.read(pds[i], &thresholdAdjustmentBuffer[i][thresholdAdjDataIndex]);
-    }
+    reader.readAll(photodiodeData, gestureDataIndex);
+    reader.readAll(thresholdAdjustmentBuffer, thresholdAdjDataIndex);
 
     thresholdAdjDataIndex++;
     
@@ -194,11 +189,8 @@ void receiverOperationDetectingStart()
     // and put the new sample in the last place
     FOR(di, i, NUM_PDs, DETECTION_BUFFER_LENGTH - 1, photodiodeData[di][i] = photodiodeData[di][i + 1])
 
-    for (size_t i = 0; i < NUM_PDs; i++)
-    {
-        reader.read(pds[i], &photodiodeData[i][gestureDataIndex]);
-        reader.read(pds[i], &thresholdAdjustmentBuffer[i][thresholdAdjDataIndex]);
-    }
+    reader.readAll(photodiodeData, gestureDataIndex);
+    reader.readAll(thresholdAdjustmentBuffer, gestureDataIndex);
 
     thresholdAdjDataIndex++;
 
@@ -211,11 +203,11 @@ void receiverOperationDetectingStart()
     }
 
     // Try to detect a start on one of the photodiodes
-    bool startEdgeDetected = false;
     for (size_t i = 0; i < NUM_PDs; i++){
         if(edgeDetector[i].DetectStart(&photodiodeData[i][gestureDataIndex])){
             state = State::DETECTING_END;
             timer.restartTimer(timID);
+            break;
         }
     }
 }
@@ -228,10 +220,7 @@ void receiverOperationDetectingEnd()
         gestureDataIndex++;
 
         // Read next sample
-        for (size_t i = 0; i < NUM_PDs; i++)
-        {
-            reader.read(pds[i], &photodiodeData[i][gestureDataIndex]);
-        }
+        reader.readAll(photodiodeData, gestureDataIndex);
 
         // Read enough more data to avoid buffer overflow when checking end
         // of gesture if more samples are checked for end than for start
@@ -251,7 +240,7 @@ void receiverOperationDetectingEnd()
             if (gestureSignalLength < GESTURE_MIN_TIME_MS / READ_PERIOD + 1)
             {
 #ifdef DEBUG_RECEIVER
-                Serial.println("Gesture took too little time! Rejecting and starting over ...");
+                    Serial.println("Gesture took too little time! Rejecting and starting over ...");
 #endif
                 state = State::RESETTING;
                 timer.restartTimer(timID);
