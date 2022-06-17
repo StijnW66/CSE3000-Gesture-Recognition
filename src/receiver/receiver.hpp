@@ -54,7 +54,7 @@ int gestureSignalLength;
 GRDiodeReader reader;
 GREdgeDetector edgeDetector[NUM_PDs];
 GRPreprocessingPipeline pipeline;
-LightIntensityRegulator regulator;
+LightIntensityRegulator * recRegulator;
 
 SimpleTimer timer;
 int timID;
@@ -74,9 +74,9 @@ void receiverOperationUpdateThresholdFromPhoBuffer() {
     }
 
     if (deltaLBigger)
-        regulator.resistorDown();
+        recRegulator->resistorDown();
     else if (deltaLSmaller)
-        regulator.resistorUp();
+        recRegulator->resistorUp();
 
     // Calculate new threshold
     state = State::UPDATING_THRESHOLD_ACTUAL;
@@ -176,9 +176,7 @@ void receiverOperationDetectingStart()
     for (size_t i = 0; i < NUM_PDs; i++){
         if(edgeDetector[i].DetectStart(&photodiodeData[i][gestureDataIndex])){
             state = State::DETECTING_END;
-#ifdef DEBUG_RECEIVER
-            Serial.println("Gesture started");
-#endif
+            timer.restartTimer(timID);
         }
     }
 }
@@ -238,10 +236,10 @@ void receiverOperationDetectingEnd()
 
             float(*output)[100] = pipeline.getPipelineOutput();
 
-            Gesture g = inferGesture2d(output);
+            // Gesture g = inferGesture2d(output);
 
-            Serial.print("Gesture: ");
-            Serial.println(g);
+            // Serial.print("Gesture: ");
+            // Serial.println(g);
 
             state = State::RESETTING;
             timer.restartTimer(timID);
@@ -314,8 +312,9 @@ void receiverRunOperation()
     }
 }
 
-void receiverSetup()
+void receiverSetup(LightIntensityRegulator * regulator)
 {
+    recRegulator = regulator;
     for (size_t i = 0; i < NUM_PDs; i++)
     {
         pinMode(pds[i], INPUT);
@@ -328,7 +327,5 @@ void receiverSetup()
 
 void receiverLoop()
 {
-    // Serial.println("Running operation: ");
-    // Serial.println(static_cast<int>(state));
-    receiverRunOperation();
+    timer.run();
 }
