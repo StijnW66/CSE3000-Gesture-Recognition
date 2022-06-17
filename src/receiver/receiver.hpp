@@ -67,7 +67,9 @@ LightIntensityRegulator * recRegulator;
 SimpleTimer timer;
 int timID;
 
-void receiverOperationUpdateThresholdFromPhoBuffer() {
+template<int size> 
+void checkLightIntensityAndAdjustHardware(uint16_t data[NUM_PDs][size]) 
+{
     bool deltaLBigger = false, deltaLSmaller = false;
 
     // For each photodiode - find its current stable signal and 
@@ -75,7 +77,7 @@ void receiverOperationUpdateThresholdFromPhoBuffer() {
     // Use the gesture data from a too long gesture 
     for (size_t i = 0; i < NUM_PDs; i++)
     {
-        uint16_t stable = QuickMedian<uint16_t>::GetMedian(photodiodeData[i], GESTURE_BUFFER_LENGTH);
+        uint16_t stable = QuickMedian<uint16_t>::GetMedian(data[i], size);
         uint16_t deltaL = stable * DETECTION_THRESHOLD_COEFF - edgeDetector[i].getThreshold();
 
         if (deltaL > 100)
@@ -89,12 +91,18 @@ void receiverOperationUpdateThresholdFromPhoBuffer() {
         recRegulator->resistorDown();
     else if (deltaLSmaller)
         recRegulator->resistorUp();
+}
+
+void receiverOperationUpdateThresholdFromPhoBuffer() 
+{
+    checkLightIntensityAndAdjustHardware(photodiodeData);
 
     // Continue to new threshold computation
     state = State::UPDATING_THRESHOLD_ACTUAL;
     timer.restartTimer(timID);
 }
 
+#ifdef DEBUG_RECEIVER
 // This is a utility function ONLY for DEBUGGING without the usage
 //  of hardware adjustment.
 void receiverOperationUpdateThresholdFromAdjBuffer_NoHardware()
@@ -113,30 +121,11 @@ void receiverOperationUpdateThresholdFromAdjBuffer_NoHardware()
     timer.restartTimer(timID);
     thresholdAdjDataIndex = 0;
 }
+#endif
 
 void receiverOperationUpdateThresholdFromAdjBuffer()
 {
-    bool deltaLBigger = false, deltaLSmaller = false;
-
-    // For each photodiode - find its current stable signal and 
-    //  compare it with the previous one.
-    // Use the photodiode data collected without a gesture being detected 
-    for (size_t i = 0; i < NUM_PDs; i++)
-    {
-        uint16_t stable = QuickMedian<uint16_t>::GetMedian(thresholdAdjustmentBuffer[i], THRESHOLD_ADJ_BUFFER_LENGTH);
-        uint16_t deltaL = stable * DETECTION_THRESHOLD_COEFF - edgeDetector[i].getThreshold();
-
-        if (deltaL > 100)
-            deltaLBigger = true;
-        if (deltaL < -100)
-            deltaLSmaller = true;
-    }
-
-    // Update the photodiode sensitivity using the calibration module if needed.
-    if (deltaLBigger)
-        recRegulator->resistorDown();
-    else if (deltaLSmaller)
-        recRegulator->resistorUp();
+    checkLightIntensityAndAdjustHardware(photodiodeData);
 
     // Continue to new threshold computation
     state = State::UPDATING_THRESHOLD_ACTUAL;
