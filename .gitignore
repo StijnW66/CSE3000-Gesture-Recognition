@@ -1,6 +1,7 @@
 # DATA
 *.pickle
 *.txt
+*.csv
 data/
 main
 
