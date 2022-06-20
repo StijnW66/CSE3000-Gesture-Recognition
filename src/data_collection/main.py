@@ -34,6 +34,14 @@ class ReadLine:
 
 
 class MyWindow(QMainWindow):
+    """Class used for collecting data from candidates.
+
+    The candidate number has to be selected and the Arduino with the three photodiodes must be connected with the
+    appropriate com port selected.
+    When run, a window will appear for every gesture. Once a button is clicked, the samples will be collected and saved
+    into the appropriate pickle file.
+    """
+
     def __init__(self):
         super(MyWindow,self).__init__()
         self.initUI()
@@ -41,16 +49,8 @@ class MyWindow(QMainWindow):
         self.chosen_hand = "right_hand"
         self.count = 0
 
-        self.accept_data = True
-
-        self.diode_configuration_name = "triangle_555_606060"  # shape_distances_angles
-        self.lux_level = -1
-
-        #######################################################################################################################################
-        # CANDIDATE NUMBER
-        #######################################################################################################################################
-
-        self.candidate_number = 30
+        # Change value to select the candidate number
+        self.candidate_number = 1
 
     def control_data_button_clicked(self):
         self.view("control")
@@ -104,15 +104,17 @@ class MyWindow(QMainWindow):
             self.chosen_hand_button.setText("Right Hand")
             self.chosen_hand = "right_hand"
 
-
     def initUI(self):
+        # Connecting quit function
         quit = QAction("Quit", self)
         quit.triggered.connect(self.closeEvent)
 
+        # QT display
         w = QtWidgets.QWidget()
         self.setCentralWidget(w)
         grid = QtWidgets.QGridLayout(w)
 
+        # Initialize buttons on display
         self.setGeometry(200, 200, 300, 300)
         self.chosen_hand_button = QPushButton("Right Hand", self)
         self.chosen_hand_button.setCheckable(True)
@@ -180,18 +182,20 @@ class MyWindow(QMainWindow):
 
     def view(self, gesture):
 
+        # Select frequency and duration of beep
         frequency = 500  # Set Frequency To 2500 Hertz
         duration = 500  # Set Duration To 1000 ms == 1 second
         winsound.Beep(frequency, duration)
 
-
         self.count += 1
         print("starting ", self.count)
+
         # make sure the 'COM#' is set according the Windows Device Manager
         ser = serial.Serial('COM7', 19200, timeout=1)
         reader = ReadLine(ser)
         time.sleep(2)
 
+        # Sampling the data
         self.data = []
         if gesture == "control":
             num_readings = 1000
@@ -212,25 +216,20 @@ class MyWindow(QMainWindow):
         plt.title(f'candidate {self.candidate_number}')
         plt.show()
 
+        # Saving data
         if gesture == "control":
             path = f"src/data_collection/data/{gesture}"
         else:
             path = f"src/data_collection/data/{gesture}/{self.chosen_hand}"
+
         # Create directory if it doesn't exist yet
         if (not os.path.exists(path)):
             os.makedirs(path)
-
 
         with open(f"{path}/candidate_{self.candidate_number}.pickle", "ab+") as file:
             pickle.dump(np.array(self.data), file)
 
         print("done ", self.count)
-
-
-
-
-
-
 
 
 def window():

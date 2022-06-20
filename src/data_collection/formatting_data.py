@@ -24,8 +24,16 @@ class SelectionStrategy(Enum):
 
 
 class FormatData():
+    """Class used for passing the raw data through to the processing pipeline.
+
+    The data is first formatted in the format the pipeline expects and saved under a "preprocessed" directoru.
+    This formatted data is then passed through the pipeline and saved under a "post_process" directory.
+    Finally, this post processed data is converted back to the original format and saved under a "reformatted" directory.
+    """
+
     def __init__(self):
         self.base_paths = []
+        self.path_to_data = "./src/data_collection/data"
         self.pass_through_pipeline()
         self.convert_processed_files()
 
@@ -81,7 +89,7 @@ class FormatData():
 
         # Get a list of all the paths
         self.base_paths = []
-        for directory in glob.iglob("./post_process./raw_data" + '**/**/**/candidate*', recursive=True):
+        for directory in glob.iglob(f"./post_process/{self.path_to_data}" + '**/**/**/candidate*', recursive=True):
             self.base_paths.append(directory)
 
         for path in track(self.base_paths, description="Converting processed files..."):
@@ -121,7 +129,7 @@ class FormatData():
         """
         # Get all the paths for data we want to pass through to pipeline
         self.base_paths = []
-        for directory in glob.iglob("./raw_data" + '**/**/*_hand', recursive=True):
+        for directory in glob.iglob(self.path_to_data + '**/**/*_hand', recursive=True):
             self.base_paths.append(directory)
 
         # Path to prepend
@@ -179,7 +187,7 @@ class FormatData():
 
 
     def get_baselines(self, candidate):
-        with open(f"./src/data_collection/data/control/{candidate}.pickle", 'rb') as f:
+        with open(f"{self.path_to_data}/control/{candidate}.pickle", 'rb') as f:
             data = pickle.load(f)
             medians = np.median(data, 0)
         return medians
