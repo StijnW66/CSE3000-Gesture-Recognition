@@ -125,7 +125,7 @@ void receiverOperationUpdateThresholdFromAdjBuffer_NoHardware()
 
 void receiverOperationUpdateThresholdFromAdjBuffer()
 {
-    checkLightIntensityAndAdjustHardware(photodiodeData);
+    checkLightIntensityAndAdjustHardware(thresholdAdjustmentBuffer);
 
     // Continue to new threshold computation
     state = State::UPDATING_THRESHOLD_ACTUAL;
