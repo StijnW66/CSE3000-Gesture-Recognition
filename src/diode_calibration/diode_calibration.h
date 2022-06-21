@@ -1,3 +1,6 @@
+#ifndef CALIBRATION
+#define CALIBRATION
+
 #include "Arduino.h"
 #include <vector>
 #include <algorithm>
@@ -187,3 +190,5 @@ class LightIntensityRegulator {
       return read_sum / window;
     }
 };
+
+#endif

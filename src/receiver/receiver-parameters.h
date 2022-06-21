@@ -23,6 +23,7 @@
 #define GESTURE_BUFFER_LENGTH           500
 // Buffer for threshold adjustment
 #define THRESHOLD_ADJ_BUFFER_LENGTH     100
+#define THRESHOLD_UPD_BUFFER_LENGTH     20
 
 // Sampling period and minimum expected gesture duration
 #define READ_PERIOD                     10
@@ -53,6 +54,7 @@
     };
 
 // #define DEBUG_RECEIVER
+// #define NO_HARDWARE_ADJUSTMENT
 // #define PLOT_RECEIVER
 
 #endif

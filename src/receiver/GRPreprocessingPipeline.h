@@ -47,10 +47,10 @@ public:
         bool trimmed = false;
         int trimCount = 0;
         int i = gestureSignalLength;
-        while(i-- >= 0 && trimCount++ < DETECTION_END_WINDOW_LENGTH * DETECTION_END_WINDOW_TRIM) {
+        while(i-- >= 0) {
             bool zero = true;
             for (size_t di = 0; di < NUM_PDs; di++)
-                zero = zero && (rawData[di][i] <= 1);
+                zero = zero && (rawData[di][i] == 0);
             
             if (zero) {
                 trimmed = true;
@@ -72,7 +72,7 @@ public:
         for (size_t i = 0; i < NUM_PDs; i++)
         {
             fftFilter[i].ZeroImag();
-            fftFilter[i].Filter(rawData[i], gestureSignalLength, 5, 1000 / READ_PERIOD);
+            fftFilter[i].Filter(rawData[i], gestureSignalLength, 10, 1000 / READ_PERIOD);
             fftFilter[i].MoveDataToBufferF(photodiodeDataFFTFiltered[i]);
         }
  
@@ -81,6 +81,21 @@ public:
         FOR(di, i, NUM_PDs, gestureSignalLength, 
             photodiodeDataFFTFiltered[di][i] = max(0, photodiodeDataFFTFiltered[di][i] - thresholds[di] * CUTT_OFF_THRESHOLD_COEFF_POST_FFT);
         );
+
+        trimmed = false;
+        trimCount = 0;
+        i = gestureSignalLength;
+        while(i-- >= 0) {
+            bool zero = true;
+            for (size_t di = 0; di < NUM_PDs; di++)
+                zero = zero && (photodiodeDataFFTFiltered[di][i] == 0);
+            
+            if (zero) {
+                trimmed = true;
+                gestureSignalLength--;
+            }
+        }
+        if(trimmed) gestureSignalLength++;
         
         #ifdef PLOT_RECEIVER
             sendSignal(photodiodeDataFFTFiltered, FFT_SIGNAL_LENGTH);
