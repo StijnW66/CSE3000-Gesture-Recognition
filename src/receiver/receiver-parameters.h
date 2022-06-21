@@ -54,6 +54,7 @@
     };
 
 // #define DEBUG_RECEIVER
+// #define NO_HARDWARE_ADJUSTMENT
 // #define PLOT_RECEIVER
 
 #endif

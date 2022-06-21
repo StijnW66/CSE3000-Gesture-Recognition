@@ -67,6 +67,48 @@ int timID;
 void (*updateForMoreLight)();
 void (*updateForLessLight)();
 
+#ifdef NO_HARDWARE_ADJUSTMENT
+
+// This is a utility function ONLY for DEBUGGING without the usage
+//  of hardware adjustment.
+void receiverOperationUpdateThresholdFromPhoBuffer()
+{
+    bool deltaLBigger = false, deltaLSmaller = false;
+
+    for (size_t i = 0; i < NUM_PDs; i++)
+    {
+        // Calculate new threshold
+        uint16_t stable = QuickMedian<uint16_t>::GetMedian(photodiodeData[i], GESTURE_BUFFER_LENGTH);
+        edgeDetector[i].setThreshold(stable * DETECTION_THRESHOLD_COEFF);
+        edgeDetector[i].setCutOffThreshold(stable * CUTT_OFF_THRESHOLD_COEFF);
+    }
+
+    state = State::RESETTING;
+    timer.restartTimer(timID);
+    thresholdAdjDataIndex = 0;
+}
+
+// This is a utility function ONLY for DEBUGGING without the usage
+//  of hardware adjustment.
+void receiverOperationUpdateThresholdFromAdjBuffer()
+{
+    bool deltaLBigger = false, deltaLSmaller = false;
+
+    for (size_t i = 0; i < NUM_PDs; i++)
+    {
+        // Calculate new threshold
+        uint16_t stable = QuickMedian<uint16_t>::GetMedian(thresholdAdjustmentBuffer[i], THRESHOLD_ADJ_BUFFER_LENGTH);
+        edgeDetector[i].setThreshold(stable * DETECTION_THRESHOLD_COEFF);
+        edgeDetector[i].setCutOffThreshold(stable * CUTT_OFF_THRESHOLD_COEFF);
+    }
+
+    state = State::RESETTING;
+    timer.restartTimer(timID);
+    thresholdAdjDataIndex = 0;
+}
+
+#else
+
 template<int size> 
 void checkLightIntensityAndAdjustHardware(uint16_t data[NUM_PDs][size]) 
 {
@@ -102,27 +144,6 @@ void receiverOperationUpdateThresholdFromPhoBuffer()
     timer.restartTimer(timID);
 }
 
-#ifdef DEBUG_RECEIVER
-// This is a utility function ONLY for DEBUGGING without the usage
-//  of hardware adjustment.
-void receiverOperationUpdateThresholdFromAdjBuffer_NoHardware()
-{
-    bool deltaLBigger = false, deltaLSmaller = false;
-
-    for (size_t i = 0; i < NUM_PDs; i++)
-    {
-        // Calculate new threshold
-        uint16_t stable = QuickMedian<uint16_t>::GetMedian(thresholdAdjustmentBuffer[i], THRESHOLD_ADJ_BUFFER_LENGTH);
-        edgeDetector[i].setThreshold(stable * DETECTION_THRESHOLD_COEFF);
-        edgeDetector[i].setCutOffThreshold(stable * CUTT_OFF_THRESHOLD_COEFF);
-    }
-
-    state = State::RESETTING;
-    timer.restartTimer(timID);
-    thresholdAdjDataIndex = 0;
-}
-#endif
-
 void receiverOperationUpdateThresholdFromAdjBuffer()
 {
     checkLightIntensityAndAdjustHardware(thresholdAdjustmentBuffer);
@@ -132,6 +153,8 @@ void receiverOperationUpdateThresholdFromAdjBuffer()
     timer.restartTimer(timID);
     thresholdAdjDataIndex = 0;
 }
+
+#endif
 
 void receiverOperationUpdateThresholdActual() {
     // Collect enough data for threshold computation
