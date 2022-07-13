@@ -1,3 +1,4 @@
+from glob import iglob
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QApplication, QMainWindow, QAction, QPushButton
 import sys
@@ -38,11 +39,19 @@ class ReadLine:
 class MyWindow(QMainWindow):
     def __init__(self):
         super(MyWindow,self).__init__()
+        self.diode_configuration_name = "Q1_different_resistor_tap" # shape_distances_angles
+        self.lux_level = "NONE"
+        
+        for directory in iglob("src/data_collection/data/original" + '**/**/*_hand', recursive=True):
+            if (self.diode_configuration_name in directory and (self.lux_level + "/") in directory):
+                print("Already exists")
+                self.diode_configuration_name = self.diode_configuration_name + "A"
+                break
+        
         self.initUI()
         self.data = []
         self.chosen_hand = "right_hand"
-        self.diode_configuration_name = "INVALID" #"triangle_666_606060" # shape_distances_angles
-        self.lux_level = -1
+        
         self.count = 0
 
         self.accept_data = True
@@ -100,6 +109,9 @@ class MyWindow(QMainWindow):
         grid = QtWidgets.QGridLayout(w)
 
         self.setGeometry(200, 200, 300, 300)
+
+        self.Databar = QtWidgets.QLabel("Recording for: " + self.diode_configuration_name + " at " + str(self.lux_level) + " Lux")
+        grid.addWidget(self.Databar)
         self.chosen_hand_button = QPushButton("Right Hand", self)
         self.chosen_hand_button.setCheckable(True)
         self.chosen_hand_button.clicked.connect(self.chosen_hand_button_clicked)
@@ -167,14 +179,15 @@ class MyWindow(QMainWindow):
         ser.close()
 
         # build the plot
-        plt.plot(self.data)
-        plt.xlabel('Time')
-        plt.ylabel('Potentiometer Reading')
-        plt.title('Potentiometer Reading vs. Time')
-        plt.show()
+        if(self.count % 5 == 0):
+            plt.plot(self.data)
+            plt.xlabel('Time')
+            plt.ylabel('Potentiometer Reading')
+            plt.title('Potentiometer Reading vs. Time')
+            plt.show()
 
         # path for current diode configuration, gesture, hand
-        path = f"src/data_collection/data/{self.diode_configuration_name}/{self.lux_level}/{gesture}/{self.chosen_hand}"
+        path = f"src/data_collection/data/original/{self.diode_configuration_name}/{self.lux_level}/{gesture}/{self.chosen_hand}"
 
         # Create directory if it doesn't exist yet
         if (not os.path.exists(path)):
@@ -194,6 +207,7 @@ class MyWindow(QMainWindow):
 
 def window():
     app = QApplication(sys.argv)
+    #app.setApplicationName()
     win = MyWindow()
     win.show()
     sys.exit(app.exec_())
