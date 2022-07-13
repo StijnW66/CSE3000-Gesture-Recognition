@@ -1,5 +1,6 @@
-# Data folder
+# DATA
 *.pickle
+*.txt
 
 # Txt files
 *.txt
@@ -43,17 +44,10 @@
 *.out
 *.app
 
-# Datasets
-data
-
 # Python blobs
 __pycache__
 venv
+wsl-venv
 
 # Tensorflow output
 *.tflite
-
-# Image files (VisualKeras output)
-*.png
-*.jpeg
-*.jpg

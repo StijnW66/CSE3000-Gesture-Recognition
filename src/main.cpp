@@ -2,24 +2,46 @@
 #include "diode_calibration/diode_calibration.h"
 #include "mbed.h"
 
+#include "receiver/receiver.hpp"
+#include "ml-arduino/main_arduino.hpp"
 
-rtos::Thread calibration_thread;
 
-// The name of this function is important for Arduino compatibility.
-void setup() {
-  // Initialise the serial port
-  Serial.begin(19200);
-  Serial1.begin(19200);
-  pinMode(A0, INPUT);
-  pinMode(A1, INPUT);
-  pinMode(A2, INPUT);
-  while(!Serial1);
-  calibration_thread.start(calibrate_diode_setup); // Should not be done multithreaded but is good for keeping the visualization.
+rtos::Thread plotter_thread;
+LightIntensityRegulator* regulator;
+
+void plotter() {
+  while(1) {
+    int r0 = analogRead(A0);
+    int r1 = analogRead(A1);
+    int r2 = analogRead(A2);
+
+    Serial.print(r0);
+    Serial.print(", ");
+    Serial.print(r1);
+    Serial.print(", ");
+    Serial.println(r2);
+    delay(10);
+  }
 }
 
-// The name of this function is important for Arduino compatibility.
+void setup() {
+  Serial.begin(9600);
+  //while(!Serial);
+
+  // Start visualization thread. Comment out if no visualization/data_collection is required
+  plotter_thread.start(plotter);
+
+  // Setup the lightintensity regulator.
+  regulator = new LightIntensityRegulator();
+
+  //tensorflowSetup();
+  //receiverSetup();
+}
+
+
 void loop() {
-  Serial.println((String)analogRead(A0) + "  " + analogRead(A1) + "  " + analogRead(A2));
-  Serial1.println((String)analogRead(A0) + "  " + analogRead(A1) + "  " + analogRead(A2));
-  delay(10);
+ 
+
+  //receiverLoop();
+
 }

@@ -1,4 +1,6 @@
+from os import path
 from typing import List, Tuple
+from skimage.measure import block_reduce
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import KFold, train_test_split
 from sys import getsizeof
@@ -15,7 +17,7 @@ import results_analysis
 def compile_model(model: tf.keras.Model):
     model.summary()
     model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
         loss=tf.keras.losses.SparseCategoricalCrossentropy(),
         metrics=[tf.keras.metrics.SparseCategoricalAccuracy()])
 
@@ -67,7 +69,7 @@ def kfold_cross_validation(model: tf.keras.Model, features: np.ndarray, labels: 
     acc_per_fold = []
     loss_per_fold = []
     confusion_per_fold = []
-    kfold = KFold(num_folds, shuffle=True)
+    kfold = KFold(num_folds, shuffle=True, random_state=constants.RANDOM_SEED) # TODO: CHANGE THIS FOR ACTUAL VALIDATION THIS CAN CAUSE HOUSEFIRES
     if quantize:
         model = tfmot.quantization.keras.quantize_model(model)
 
@@ -127,11 +129,15 @@ def train_uwave():
 
 
 def train_initial_raw_dataset():
-    print("========== INITIAL RAW DATASET ==========")
-    features, labels = data_processing.load_and_combine_raw_data()
+    print("========== RAW DATASET ==========")
+    features_20_hz, labels_20_hz = data_processing.load_and_combine_data(path.join("data", "ideal_data"), num_to_process=29)
+    features_100_hz, labels_100_hz = data_processing.load_and_combine_data(path.join("data", "ideal_data"), start_candidate=30, sample_length=500)
+    features_100_hz = block_reduce(features_100_hz, block_size=(1, 5, 1, 1), func=np.mean)
+    features = np.append(features_20_hz, features_100_hz, axis=0)
+    labels = np.append(labels_20_hz, labels_100_hz, axis=0)
     x_train, x_test, y_train, y_test = train_test_split(features,
                                                         labels,
-                                                        test_size=0.25,
+                                                        test_size=0.20,
                                                         random_state=constants.RANDOM_SEED)
 
     running_model = models.slam_cnn_padding_pyramid_lite(features[0].shape, constants.NUM_CLASSES_RAW_DATA)
@@ -141,17 +147,25 @@ def train_initial_raw_dataset():
 # ===== END CONVENIENCE METHODS =====
 
 if __name__ == "__main__":
-    features, labels = data_processing.load_and_combine_raw_data()
+    # train_initial_raw_dataset()
+
+    features_20_hz, labels_20_hz = data_processing.load_and_combine_data(path.join("data", "ideal_data"), num_to_process=29)
+    features_100_hz, labels_100_hz = data_processing.load_and_combine_data(path.join("data", "ideal_data"), start_candidate=30, sample_length=500)
+    features_100_hz = block_reduce(features_100_hz, block_size=(1, 5, 1, 1), func=np.mean)
+    features = np.append(features_20_hz, features_100_hz, axis=0)
+    labels = np.append(labels_20_hz, labels_100_hz, axis=0)
+
     acc_per_fold, loss_per_fold, confusion_per_fold = kfold_cross_validation(
-        models.slam_cnn_padding_pyramid_lite(features[0].shape, constants.NUM_CLASSES_RAW_DATA),
+        models.narrow_slam_cnn_padding_pyramid(features[0].shape, constants.NUM_CLASSES_RAW_DATA),
         features, labels, 5, False)
     results_analysis.print_kfold_results(acc_per_fold, loss_per_fold, confusion_per_fold)
+    
     # model_list = [
-    #     models.slam_cnn_padding(features[0].shape, constants.NUM_CLASSES_INITIAL_RAW_DATA),
-    #     models.slam_cnn_padding_lite(features[0].shape, constants.NUM_CLASSES_INITIAL_RAW_DATA),
-    #     models.slam_cnn_padding_pyramid(features[0].shape, constants.NUM_CLASSES_INITIAL_RAW_DATA),
-    #     models.slam_cnn_padding_pyramid_lite(features[0].shape, constants.NUM_CLASSES_INITIAL_RAW_DATA)]
+    #     models.slam_cnn_padding(features[0].shape, constants.NUM_CLASSES_RAW_DATA),
+    #     models.slam_cnn_padding_pyramid(features[0].shape, constants.NUM_CLASSES_RAW_DATA),
+    #     models.slam_cnn_padding_pyramid_lite(features[0].shape, constants.NUM_CLASSES_RAW_DATA),
+    #     models.narrow_slam_cnn_padding_pyramid(features[0].shape, constants.NUM_CLASSES_RAW_DATA)]
     # model_names = [
-    #     "SLAM CNN Padding", "SLAM CNN Padding Lite",
-    #     "SLAM CNN Padding Pyramid", "SLAM CNN Padding Pyramid Lite"]
+    #     "SLAM CNN Padding", "SLAM CNN Padding Pyramid",
+    #     "SLAM CNN Padding Pyramid Lite", "Narrow SLAM CNN Padding Pyramid"]
     # compare_models(model_list, model_names, features, labels, num_folds=5)

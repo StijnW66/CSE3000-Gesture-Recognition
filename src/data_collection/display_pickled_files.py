@@ -2,6 +2,11 @@ import matplotlib.pyplot as plt
 import pickle
 import scipy.ndimage
 
+raw = "src"
+proc = "new_reformatted/new_post_process/src"
+gest = "clockwise"
+hand = "left_hand"
+cand = 10
 
 path = "src/data_collection/data/final/Q1_Tap_result_Resitor_1112k/25/tap/right_hand/data.pickle"
 

@@ -143,3 +143,18 @@ def slam_cnn_padding_pyramid_lite(input_shape: Tuple, num_classes: int) -> tf.ke
         tf.keras.layers.Dropout(0.5),
         tf.keras.layers.Dense(num_classes, activation="softmax", name="predictions"),
     ])
+
+
+def narrow_slam_cnn_padding_pyramid(input_shape: Tuple, num_classes: int) -> tf.keras.Model:
+    return tf.keras.models.Sequential([
+        tf.keras.Input(shape=input_shape, name="sensor_image"),
+        tf.keras.layers.ZeroPadding2D(padding=(0, 1)),
+        tf.keras.layers.Conv2D(8, kernel_size=(2, 2), strides=(1, 1), activation="relu"),
+        tf.keras.layers.Conv2D(16, kernel_size=(2, 2), strides=(1, 1), activation="relu"),
+        tf.keras.layers.Conv2D(32, kernel_size=(2, 2), activation="relu"),
+        tf.keras.layers.MaxPooling2D(pool_size=(3, 1)),
+        tf.keras.layers.Conv2D(32, kernel_size=(5, 1), activation="relu"),
+        tf.keras.layers.Flatten(),
+        tf.keras.layers.Dropout(0.5),
+        tf.keras.layers.Dense(num_classes, activation="softmax", name="predictions"),
+    ])

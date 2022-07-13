@@ -5,11 +5,9 @@ import sys
 import serial
 import time
 import matplotlib.pyplot as plt
-import csv
 import pickle
 import numpy as np
-import json
-
+import winsound
 import os
 
 
@@ -56,6 +54,18 @@ class MyWindow(QMainWindow):
 
         self.accept_data = True
 
+        self.diode_configuration_name = "triangle_555_606060"  # shape_distances_angles
+        self.lux_level = -1
+
+        #######################################################################################################################################
+        # CANDIDATE NUMBER
+        #######################################################################################################################################
+
+        self.candidate_number = 30
+
+    def control_data_button_clicked(self):
+        self.view("control")
+
     def swipe_left_button_clicked(self):
         self.view("swipe_left")
 
@@ -79,6 +89,12 @@ class MyWindow(QMainWindow):
 
     def double_tap_button_clicked(self):
         self.view("double_tap")
+
+    def zoom_in_button_clicked(self):
+        self.view("zoom_in")
+
+    def zoom_out_button_clicked(self):
+        self.view("zoom_out")
 
     # method called by button
     def chosen_hand_button_clicked(self):
@@ -117,6 +133,11 @@ class MyWindow(QMainWindow):
         self.chosen_hand_button.clicked.connect(self.chosen_hand_button_clicked)
         self.chosen_hand_button.setStyleSheet("background-color : lightgrey")
         grid.addWidget(self.chosen_hand_button)
+
+        self.control_data_button = QPushButton(self)
+        self.control_data_button.setText("control_data")
+        self.control_data_button.clicked.connect(self.control_data_button_clicked)
+        grid.addWidget(self.control_data_button)
 
         self.swipe_left_button = QPushButton(self)
         self.swipe_left_button.setText("swipe_left")
@@ -158,19 +179,39 @@ class MyWindow(QMainWindow):
         self.double_tap_button.clicked.connect(self.double_tap_button_clicked)
         grid.addWidget(self.double_tap_button)
 
+        self.zoom_in_button = QPushButton(self)
+        self.zoom_in_button.setText("zoom_in")
+        self.zoom_in_button.clicked.connect(self.zoom_in_button_clicked)
+        grid.addWidget(self.zoom_in_button)
+
+        self.zoom_out_button = QPushButton(self)
+        self.zoom_out_button.setText("zoom_out")
+        self.zoom_out_button.clicked.connect(self.zoom_out_button_clicked)
+        grid.addWidget(self.zoom_out_button)
+
     def closeEvent(self, event):
         event.accept()
 
     def view(self, gesture):
+
+        frequency = 500  # Set Frequency To 2500 Hertz
+        duration = 500  # Set Duration To 1000 ms == 1 second
+        winsound.Beep(frequency, duration)
+
+
         self.count += 1
         print("starting ", self.count)
         # make sure the 'COM#' is set according the Windows Device Manager
-        ser = serial.Serial('COM8', 19200, timeout=1)
+        ser = serial.Serial('COM7', 19200, timeout=1)
         reader = ReadLine(ser)
         time.sleep(2)
 
         self.data = []
-        for i in range(100):
+        if gesture == "control":
+            num_readings = 1000
+        else:
+            num_readings = 500
+        for i in range(num_readings):
             line = reader.readline()  # read a byte string
             if line:
                 string = line.decode().strip("\n")  # convert the byte string to a unicode string
@@ -193,7 +234,8 @@ class MyWindow(QMainWindow):
         if (not os.path.exists(path)):
             os.makedirs(path)
 
-        with open(path + "/data.pickle", "ab+") as file:
+
+        with open(f"{path}/candidate_{self.candidate_number}.pickle", "ab+") as file:
             pickle.dump(np.array(self.data), file)
 
         print("done ", self.count)
